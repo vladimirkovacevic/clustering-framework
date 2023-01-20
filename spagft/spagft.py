@@ -50,17 +50,20 @@ def clustering(adata):
 
 
 def save_clustering_result(adata, file):
-    fig = sc.pl.spatial(adata, color=['clusters'], spot_size=1.2, return_fig=True)
-    plt.savefig(file + '.png', dpi=250, bbox_inches='tight')
+    sc.pl.spatial(adata, color=['clusters'], spot_size=1.2, show=False)
+    plt.savefig(file+'.png', dpi=250, bbox_inches='tight')
     out_fname = file.rstrip('.h5ad') + '.out.h5ad'
+    adata.uns['freq_signal_tm'] = [] # TODO enable DataFrames to be written to .h5ad. For now exclude them
+    adata.uns['freq_signal_subTM'] = []
+    adata.uns['gft_umap_tm'] = []
     adata.write(out_fname, compression="gzip")
-    logging.info(f'Saved clustering result as .png and {file}.')
+    logging.info(f'Saved clustering result as .png and {out_fname}.')
 
 
 def main():
     logging.basicConfig(level=logging.INFO)
     sc.settings.verbosity = 3      
-    sc.settings.set_figure_params(dpi=300, facecolor='white', dpi_save=300)
+    sc.settings.set_figure_params(dpi=300, facecolor='white')
     parser = ap.ArgumentParser(description='A script that performs clustering with tissue modules identified using SpaGFT')
     parser.add_argument('-f', '--file', help='File that contain data to be clustered', type=str, required=True)
     parser.add_argument('-o', '--out_path', help='Path to store outputs', type=str, required=False)
