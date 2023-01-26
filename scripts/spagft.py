@@ -52,7 +52,7 @@ def clustering(adata):
 def save_clustering_result(adata, file):
     sc.pl.spatial(adata, color=['clusters'], spot_size=1.2, show=False)
     plt.savefig(file+'.png', dpi=250, bbox_inches='tight')
-    out_fname = file.rstrip('.h5ad') + '.out.h5ad'
+    out_fname = file.rstrip('.h5ad') + '.spagft.out.h5ad'
     adata.uns['freq_signal_tm'] = [] # TODO enable DataFrames to be written to .h5ad. For now exclude them
     adata.uns['freq_signal_subTM'] = []
     adata.uns['gft_umap_tm'] = []
