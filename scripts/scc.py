@@ -45,7 +45,7 @@ def scc_clustering(args):
 
 
 if __name__ == '__main__':
-
+    
     parser = ap.ArgumentParser(description='A script that performs spatially constrained clustering (SCC)')
     parser.add_argument('-f', '--file', help='File that contain data to be clustered', type=str, required=True)
     parser.add_argument('-o', '--out_path', help='Path to store outputs', type=str, required=False, default='results')

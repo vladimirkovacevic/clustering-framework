@@ -1,23 +1,24 @@
 import argparse as ap
 import logging
 import os
+import sys
 
 import SpaGFT as spg
 import numpy as np
 import pandas as pd
 import scanpy as sc
-import stereo as st
 import matplotlib.pyplot as plt
+import scipy
 
+logging.basicConfig(level=logging.INFO)
 
-def load_and_preprocess(file):
-    adata = sc.read(file)
+def preprocess(adata):
     adata.var_names_make_unique()
     adata.raw = adata
     sc.pp.filter_genes(adata, min_cells=10)
     sc.pp.normalize_total(adata, inplace=True)
     sc.pp.log1p(adata)
-    logging.info(f'Successfully read the file: {file}')
+    logging.info(f'Finished preprocessing')
     return adata
 
 
@@ -62,7 +63,6 @@ def save_clustering_result(adata, file):
 
 if __name__ == '__main__':
 
-    logging.basicConfig(level=logging.INFO)
     sc.settings.verbosity = 3      
     sc.settings.set_figure_params(dpi=300, facecolor='white')
     parser = ap.ArgumentParser(description='A script that performs clustering with tissue modules identified using SpaGFT')
@@ -70,10 +70,14 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--out_path', help='Path to store outputs', type=str, required=False)
     args = parser.parse_args()
 
-
     if not args.file.endswith('.h5ad'):
         raise AttributeError(f"File '{args.file}' extension is not .h5ad")
-    adata = load_and_preprocess(args.file)
+    
+    adata = sc.read(args.file)
+    if not scipy.sparse.issparse(adata.X):
+        adata.X = scipy.sparse.csr_matrix(adata.X)
+
+    adata = preprocess(adata)
     if not (identify_svg_and_tissue_modules(adata, ['x', 'y']) or identify_svg_and_tissue_modules(adata, 'spatial')):
         raise KeyError("Spatial info is not avaliable in adata.obsm_keys == 'spatial' or adata.obs_keys ['x', 'y']")
     clustering(adata)
