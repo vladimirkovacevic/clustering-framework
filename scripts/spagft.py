@@ -60,7 +60,8 @@ def save_clustering_result(adata, file):
     logging.info(f'Saved clustering result as .png and {out_fname}.')
 
 
-def main():
+if __name__ == '__main__':
+
     logging.basicConfig(level=logging.INFO)
     sc.settings.verbosity = 3      
     sc.settings.set_figure_params(dpi=300, facecolor='white')
@@ -79,6 +80,3 @@ def main():
     
     save_clustering_result(adata, os.path.join(args.out_path, os.path.basename(args.file)))
 
-
-if __name__ == '__main__':
-    main()
