@@ -44,8 +44,9 @@ def generate_stats(adata, sample_name:str):
 
     sns.histplot(adata.obs['genes_expressed_per_cell'])
     plt.axvline(x=meanval, color='red')
-    plt.title('{} - {}x{} obs x genes\nNumber of genes expressed in each cell. Mean = {}, std = {}'.format(fname.split('.')[0], nobs, ngenes, meanval, std))
-    plt.savefig('genes_per_cell_{}'.format(sample_name), dpi=200, bbox_inches='tight')
+    plt.title('{} - {}x{} obs x genes\nNumber of genes expressed in each cell. Mean = {}, std = {}'.format(fname.split('.')[0], nobs, ngenes, meanval, std))    
+    plt.savefig('genes_per_cell_{}.png'.format(sample_name), dpi=200, bbox_inches='tight')
+    plt.close()
 
     n_neighbors = 4
     sc.pp.neighbors(adata, n_neighbors=n_neighbors + 1,use_rep='spatial', knn=True, key_added='stats')
@@ -60,7 +61,6 @@ def generate_stats(adata, sample_name:str):
             cell_genes_expressed_dict[non_zero_pos[0][start_ind]] = non_zero_pos[1][start_ind: end_ind]  # adata.obs.index[cell]
             start_ind = ind
             
-
     neighbors_in_graph = adata.obsp['stats_connectivities'].nonzero()
     cell_intersect_neigh_perc = []
     cell_intersect_neigh_count = []
@@ -91,7 +91,7 @@ def generate_stats(adata, sample_name:str):
     plt.axvline(x=meanval, color='red')
     plt.title(f'{sample_name} - {nobs}x{ngenes} obs x genes\nDistribution of percentage of intersecting expressed \n genes with {n_neighbors} spatially closest observations \nMean = {meanval}, std = {std}')
     plt.savefig(f'dist_percentage_{sample_name}.png', dpi=200, bbox_inches='tight')
-
+    plt.close()
     report_dict[f'Mean of percentage of intersecting expressed genes with {n_neighbors} spatially closest observations'] = np.round(100*cell_intersect_neigh_perc.mean(), 2)
     report_dict[f'Std of percentage of intersecting expressed genes with {n_neighbors} spatially closest observations'] = np.round(100*cell_intersect_neigh_perc.std(), 2)
 
@@ -103,12 +103,14 @@ def generate_stats(adata, sample_name:str):
     plt.axvline(x=meanval, color='red')
     plt.title(f'{sample_name} - {nobs}x{ngenes} obs x genes\nDistribution of number of intersecting expressed \n genes with {n_neighbors} spatially closest observations \nMean = {meanval}, std = {std}')
     plt.savefig(f'dist_count_{sample_name}.png', dpi=200, bbox_inches='tight')
+    plt.close()
     report_dict[f'Mean of number of intersecting expressed genes with {n_neighbors} spatially closest observations'] = np.round(cell_intersect_neigh_count.mean(), 2)
     report_dict[f'Std of number of intersecting expressed genes with {n_neighbors} spatially closest observations'] = np.round(cell_intersect_neigh_count.std(), 2)
 
     fig = sns.jointplot(x=cell_intersect_neigh_count, y=cell_intersect_neigh_perc, s=4)
-    plt.xlabel('Number of intersecting genes', fontsize=5)
-    plt.ylabel('Percentage of intersecting genes', fontsize=5)
+    fig.ax_joint.set_xlabel('Number of intersecting genes', fontweight='bold', fontsize=9)
+    fig.ax_joint.set_ylabel('Percentage of intersecting genes', fontweight='bold', fontsize=9)
+
     plt.title('{} - {}x{} obs x genes\nPercentage and number of intersecting genes \nwith {} closest neighboring cells'.format(
         sample_name.split('.')[0], nobs, ngenes, n_neighbors), fontsize=12, y=1.3, x=-2.5)
     plt.savefig(f'perc_number_{sample_name}.png', dpi=200, bbox_inches='tight')
@@ -116,16 +118,14 @@ def generate_stats(adata, sample_name:str):
     json.dump(report_dict, open(sample_name + '.json', 'w'), indent=True)
 
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--fname', type = str, required=True)
     args = parser.parse_args()
-    fname = args.fname. #  "/home/ubuntu/stereo-seq/SS200000135TL_D1_with_annotation.h5ad"#
-
+    fname = args.fname
     if fname.endswith('.h5ad'):
-        adata = sc.read(os.path.join(path_local, fname))
+        adata = sc.read(fname)
     elif fname.endswith('.gef'):
-        data = st.io.read_gef(file_path=f'{path_local}{fname}', bin_type='cell_bins')
+        data = st.io.read_gef(file_path=fname, bin_type='cell_bins')
         adata = st.io.stereo_to_anndata(data)
     else:
         print('Input format not supported')
