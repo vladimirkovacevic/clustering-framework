@@ -1,6 +1,9 @@
 import scanpy as sc
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 from sklearn.metrics.cluster import contingency_matrix
+from sklearn.metrics import adjusted_rand_score, v_measure_score, mutual_info_score
 
 
 def plot_clustering_against_ground_truth(
@@ -12,10 +15,9 @@ def plot_clustering_against_ground_truth(
     spot_size=1.5):
     # Remap obtained clustering to ground truth
     cm = contingency_matrix(labels_true=adata.obs[labels_true], labels_pred=adata.obs[labels_pred])
-    cont_df = pd.DataFrame(cm, index=sorted(set(adata.obs[labels_true])), columns=sorted(set(adata.obs[labels_true])))
+    cont_df = pd.DataFrame(cm, index=sorted(set(adata.obs[labels_true])), columns=sorted(set(adata.obs[labels_pred])))
     remap_dict = {col:cont_df.index[np.argmax(cont_df[col])] for col in cont_df.columns}
     adata.obs.loc[:, labels_pred + '_remap'] = adata.obs[labels_pred].map(remap_dict)
-    ari_score = adjusted_rand_score(labels_true=adata.obs[labels_true], labels_pred=adata.obs[labels_pred])
 
     remaped_classes = set(adata.obs[labels_pred + '_remap'])
     mask_col = [1 if x in remaped_classes else 0 for x in cont_df.index]
