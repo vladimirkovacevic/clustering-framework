@@ -1,3 +1,4 @@
+import sys
 import argparse
 import numpy as np
 import pandas as pd
@@ -7,137 +8,107 @@ import scipy
 from scipy.sparse import csr_matrix
 import anndata as ad
 import scanpy as sc
-from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import normalize
 from sklearn.cluster import KMeans
 import louvain
 
-
-#------------------------------------------Kmeans-------------------------------------------------------------------
-def weight_scaler(dataframe, scaler):
-    for i in dataframe.columns:
-     if i in ['u1', 'u2']:
-       dataframe[i] = dataframe[i].apply(lambda x: x * scaler)
-     else:
-       dataframe[i] = dataframe[i].apply(lambda x: x * (1 - scaler))
-    return dataframe
-# Creating DF with spatial coordination
-def extracting_coordinates(dataframe): #from multiindex dataframe
-    coordinates = pd.DataFrame(dataframe.values, columns = ['x','y'])
-    return coordinates
-#Concatination of umaps and spatial coordination
-def concatination(anndata, coord_df):
-    sc.tl.umap(anndata)
-    umap_comp = pd.DataFrame(anndata.obsm['X_umap'], columns = ['u1','u2'])
-    frames = [umap_comp, coord_df]
-    concatinated_df = pd.concat(frames, axis = 1)
-    return concatinated_df
-# Clustering (Kmeans) from concatinated dataframe
-def cluster_with_kmeans_and_plot(concat_df, scaler):
-    df_normalised = normalize(concat_df, axis = 0) #returns sparse matrix or numpy object
-    df_normalised = pd.DataFrame(df_normalised, columns=['u1','u2','x','y'])
-    scaled_dataframe = weight_scaler(df_normalised, scaler)
-    num_cl = 11
-    colors = cm.rainbow(np.linspace(0, 1, num_cl))
-    kmeans = KMeans(n_clusters=num_cl, init = 'k-means++', random_state = 42).fit(scaled_dataframe)
-    label=kmeans.predict(scaled_dataframe)
-    for i in range(0,num_cl):
-        plt.scatter(scaled_dataframe.loc[label == i, 'x'], scaled_dataframe.loc[label == i, 'y'], color=colors[i], s = 1, marker='.')
-    plt.title('Kmeans clustering (umap costum)')
-    plt.savefig('Kmeans clustering (umap costum).png')
-
-#------------------------Scanpy----------------------------------------------------------
-def anndata_add_spatial(spat_coord, anndata):
-    spat_coord = np.array(spat_coord) 
-    anndata.obsm['spatial'] = spat_coord
-    return anndata
-
-def data_preprocesing(anndata):
-    print('----------------> Normalisation of the data')
-    sc.pp.normalize_total(anndata, target_sum=1e4, inplace = True)
-    sc.pp.log1p(anndata)
-    print('----------------> Calcualting PCA')
-    sc.tl.pca(anndata, svd_solver='arpack')
-
-def louv_clustering_umap(anndata):
-    # for scnpy_umap
-    sc.tl.umap(anndata)
-    sc.tl.louvain(anndata, resolution = 1.0, key_added='louvain_1.0')
-    sc.pl.spatial(anndata,
-              color= 'louvain_1.0',
-              title = 'Louvain clustering',
-              gene_symbols=gene_id,
-              spot_size = 25,
-              save = 'Louvain clustering_1.0')
-    print('----------------> Figure saved in current directory')
-
-def louv_clustering_scc(anndata):
-    sc.tl.louvain(anndata, 
-              adjacency = (anndata.obsp['Gene expression_connectivities'] + anndata.obsp['physical_space_connectivities']),
-              resolution = 1.8,
-              key_added = 'scc_louvian_1.8'
-    ) 
-    sc.pl.spatial(anndata, color='scc_louvian_1.8', gene_symbols=gene_id, spot_size= 42, save = 'scc_louvain clustering_1.8')
-    print('----------------> Figure saved in current directory')
-
-def umap_simple_kmeans(adata, cell_coord, scaler):
-    cell_coord_df = extracting_coordinates(cell_coord)
-    data_preprocesing(adata)
-    sc.pp.neighbors(adata, n_pcs=30)
-    concat_dataframe = concatination(adata, cell_coord_df)
-    cluster_with_kmeans_and_plot(concat_dataframe, scaler)
-    print('----------------> Figure saved in current directory')
-    
-def umap_simple_louvain(adata, cell_coord):
-    adata = anndata_add_spatial(cell_coord, adata)
-    data_preprocesing(adata)
-    sc.pp.neighbors(adata, n_pcs=30)
-    louv_clustering_umap(adata)
-
-def scc(adata, cell_coord):
-    adata = anndata_add_spatial(cell_coord, adata)
-    data_preprocesing(adata)
-    # Creating neighborhood graph based on distance in transcriptomic space (30-nearest neighbors)
-    sc.pp.neighbors(adata, n_neighbors = 30, n_pcs=30, key_added = 'Gene expression')
-    #Creating neighborhood graph based on distance in physical space (8-nearest neighbors)
-    sc.pp.neighbors(adata, n_neighbors = 8 , use_rep = 'spatial', key_added = 'physical_space') # key_added != 'spatial'
-    louv_clustering_scc(adata)
-#_____________________________________________________
-
-if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--filename', type = str)
-    parser.add_argument('--weight', type = float)
-    parser.add_argument('--method', choices = ['Umap simple Kmeans','Umap simple Louvain','SCC'])
-    args = parser.parse_args()
-    print(args.filename)
-
-    sc.settings.set_figure_params(dpi=200)
-    print('----------------> reading csv file')
-    data = pd.read_csv(f'/mnt/c/Users/antic/Desktop/Test3/{args.filename}', compression='gzip', sep='\t')
-    #--------------------------------dataset_transformation--------------------------------------------------
-    print('----------------> Data tranformation')
+def read_gem(data):
     data.set_index('geneID', inplace = True)
     data_pivoted = pd.pivot_table(data, index = ['cell','x','y'], columns = data.index, aggfunc ='sum', fill_value = 0)
     cell_id = list(data_pivoted.index.get_level_values(0))
     cell_id = list(map(str, cell_id))
     gene_id = list(data_pivoted.columns.get_level_values(1))
-    #-------------------- creating anndata object ------------------------------
-    print('----------------> Creating AnnData object')
     sparse_matrix = scipy.sparse.csr_matrix(data_pivoted)
-    adata = ad.AnnData(sparse_matrix)
-    #---------------------------- assignnig cell and gene IDs -------------------------------
+    adata = ad.AnnData(sparse_matrix, dtype = np.float32)
     df_pivot_reset_index = data_pivoted.reset_index(level =['cell','x','y'])
     cell_coord = df_pivot_reset_index.loc[:,['cell','x','y']]
-    cell_coord = cell_coord.drop('cell', axis = 1)
-    print('----------------> Assigning OBS and VAR names')
+    cell_coord = np.array(cell_coord.drop('cell', axis = 1, level = 0))
     adata.obs_names = cell_id
     adata.var_names = gene_id
-    
-    if args.method == 'Umap simple Kmeans':
-        umap_simple_kmeans(adata, cell_coord, args.weight)
-    elif args.method == 'Umap simple Louvain':
-        umap_simple_louvain(adata, cell_coord)
+    adata.obsm['spatial'] = cell_coord
+    return adata
+
+# Clustering (Kmeans)
+def kmeans_spa(adata, scaler):
+    sc.pp.normalize_total(adata, target_sum=1e4, inplace = True)
+    sc.pp.log1p(adata)
+    sc.tl.pca(adata, svd_solver='arpack')
+    sc.pp.neighbors(adata, n_pcs=30)
+    sc.tl.umap(adata)
+    adata.obsm['umap_with_spatial'] = np.concatenate((adata.obsm['X_umap'], adata.obsm['spatial']),
+                                                            axis = 1,
+                                                            dtype = np.float32)
+    adata.obsm['umap_with_spatial'] = normalize(adata.obsm['umap_with_spatial'], axis = 0) #returns sparse matrix or numpy object
+    mapper = lambda arr: [arr[0] * scaler, arr[1] * scaler, arr[2] * (1-scaler), arr[3] * (1-scaler)]
+    adata.obsm['umap_with_spatial']= np.array(list(map(mapper, adata.obsm['umap_with_spatial'])))
+    num_cl = 11
+    kmeans = KMeans(n_clusters = num_cl, init = 'k-means++', random_state = 42, n_init = 10).fit(adata.obsm['umap_with_spatial'])
+    label = kmeans.predict(adata.obsm['umap_with_spatial'])
+    adata.obs['Kmeans'] = label
+    adata.write('results_with_kmeans.h5ad')
+
+# Dimension reduction with UMAP and Louvain clustering
+def louvain_spa(adata):
+    sc.pp.normalize_total(adata, target_sum=1e4, inplace = True)
+    sc.pp.log1p(adata)
+    sc.tl.pca(adata, svd_solver='arpack')
+    sc.pp.neighbors(adata, n_pcs=30)
+    sc.tl.umap(adata)
+    sc.tl.louvain(adata, resolution = 1.4, key_added='louvain_spa')
+    adata.write('results_with_louvain.h5ad')
+
+# SCC Clustering
+def scc(adata, clustering_type):
+    sc.pp.normalize_total(adata, target_sum=1e4, inplace = True)
+    sc.pp.log1p(adata)
+    sc.tl.pca(adata, svd_solver='arpack')
+    # Creating neighborhood graph based on distance in transcriptomic space (30-nearest neighbors)
+    sc.pp.neighbors(adata, n_neighbors = 30, n_pcs=30, key_added = 'Gene expression')
+    #Creating neighborhood graph based on distance in physical space (8-nearest neighbors)
+    sc.pp.neighbors(adata, n_neighbors = 8 , use_rep = 'spatial', key_added = 'physical_space') # key_added != 'spatial'
+    if clustering_type == 'louvain':
+        sc.tl.louvain(adata, 
+                  adjacency = (adata.obsp['Gene expression_connectivities'] + adata.obsp['physical_space_connectivities']),
+                  #resolution = 1.8,
+                key_added = 'scc_louvian')
     else:
-        scc(adata, cell_coord)
+        sc.tl.leiden(adata, 
+                adjacency = (adata.obsp['Gene expression_connectivities'] + adata.obsp['physical_space_connectivities']),
+                key_added = 'scc_leiden' )
+    adata.write('results_with_scc.h5ad')
+#_________________________________________________________________________________________________________
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description = 'Program for clustering' )
+    parser.add_argument('--path', type = str, help = 'path to the .tsv file', required = True)
+    parser.add_argument('--method', choices = ['kmeans_spa','louvain_spa','SCC'], required = True)
+    parser.add_argument('--plot', choices=['yes', 'no'], required = True)
+    parser.add_argument('--weight', type = float, required = 'kmeans_spa' in sys.argv)
+    parser.add_argument('--clust_type', choices = ['louvain', 'leidan'], required = 'SCC' in sys.argv)
+    args = parser.parse_args()
+    
+    # Create anndata
+    if args.path.endswith('.tsv'):
+        data = pd.read_csv(args.path, sep='\t')
+        adata = read_gem(data)
+    elif args.path.endswith('.tsv.gz'):
+        data = pd.read_csv(args.path, sep='\t', compression = 'gzip')
+        adata = read_gem(data)
+    elif args.path.endswith('.h5ad'):
+        adata = sc.read_h5ad(args.path)
+    
+    # Clustering by choosen method
+    if args.method == 'kmeans_spa':
+        kmeans_spa(adata, args.weight)
+        if args.plot == 'yes':
+            sc.pl.spatial(adata, color = 'Kmeans', gene_symbols = list(adata.var_names), spot_size = 28, save = 'Kmeans_spa.png')
+    elif args.method == 'louvain_spa':
+        louvain_spa(adata)
+        if args.plot == 'yes':
+            sc.pl.spatial(adata, color= 'louvain_spa', title = 'Louvain clustering', gene_symbols = list(adata.var_names), spot_size = 25, save = 'Louvain_clustering.png')        
+    else:
+        scc(adata, args.clust_type)
+        if args.plot == 'yes' and args.clust_type == 'louvain':
+            sc.pl.spatial(adata, color='scc_louvian', gene_symbols = list(adata.var_names), spot_size= 42, save = 'scc_louvain.png')
+        elif args.plot == 'yes' and args.clust_type == 'leidan':
+            sc.pl.spatial(adata, color = 'scc_leidan', gene_symbols = list(adata.var_names), spot_size= 42, save = 'scc_leidan.png')
