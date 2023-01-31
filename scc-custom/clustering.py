@@ -28,7 +28,7 @@ def read_gem(data):
     adata.obsm['spatial'] = cell_coord
     return adata
 
-# Clustering (Kmeans)
+# Kmeans clustering
 def kmeans_spa(adata, scaler):
     sc.pp.normalize_total(adata, target_sum=1e4, inplace = True)
     sc.pp.log1p(adata)
@@ -44,10 +44,10 @@ def kmeans_spa(adata, scaler):
     num_cl = 11
     kmeans = KMeans(n_clusters = num_cl, init = 'k-means++', random_state = 42, n_init = 10).fit(adata.obsm['umap_with_spatial'])
     label = kmeans.predict(adata.obsm['umap_with_spatial'])
-    adata.obs['Kmeans'] = label
+    adata.obs['kmeans_spa'] = label
     adata.write('results_with_kmeans.h5ad')
 
-# Dimension reduction with UMAP and Louvain clustering
+# Louvain clustering 
 def louvain_spa(adata):
     sc.pp.normalize_total(adata, target_sum=1e4, inplace = True)
     sc.pp.log1p(adata)
@@ -57,23 +57,23 @@ def louvain_spa(adata):
     sc.tl.louvain(adata, resolution = 1.4, key_added='louvain_spa')
     adata.write('results_with_louvain.h5ad')
 
-# SCC Clustering
+# SCC with Louvain or Leiden
 def scc(adata, clustering_type):
     sc.pp.normalize_total(adata, target_sum=1e4, inplace = True)
     sc.pp.log1p(adata)
     sc.tl.pca(adata, svd_solver='arpack')
     # Creating neighborhood graph based on distance in transcriptomic space (30-nearest neighbors)
-    sc.pp.neighbors(adata, n_neighbors = 30, n_pcs=30, key_added = 'Gene expression')
+    sc.pp.neighbors(adata, n_neighbors = 30, n_pcs=30, key_added = 'gene_expression')
     #Creating neighborhood graph based on distance in physical space (8-nearest neighbors)
     sc.pp.neighbors(adata, n_neighbors = 8 , use_rep = 'spatial', key_added = 'physical_space') # key_added != 'spatial'
-    if clustering_type == 'louvain':
+    if clustering_type == 'scc_louvain':
         sc.tl.louvain(adata, 
-                  adjacency = (adata.obsp['Gene expression_connectivities'] + adata.obsp['physical_space_connectivities']),
-                  #resolution = 1.8,
-                key_added = 'scc_louvian')
+                  adjacency = (adata.obsp['gene_expression_connectivities'] + adata.obsp['physical_space_connectivities']),
+                  resolution = 1.4,
+                key_added = 'scc_louvain')
     else:
         sc.tl.leiden(adata, 
-                adjacency = (adata.obsp['Gene expression_connectivities'] + adata.obsp['physical_space_connectivities']),
+                adjacency = (adata.obsp['gene_expression_connectivities'] + adata.obsp['physical_space_connectivities']),
                 key_added = 'scc_leiden' )
     adata.write('results_with_scc.h5ad')
 #_________________________________________________________________________________________________________
@@ -81,10 +81,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description = 'Program for clustering' )
     parser.add_argument('--path', type = str, help = 'path to the .tsv file', required = True)
-    parser.add_argument('--method', choices = ['kmeans_spa','louvain_spa','SCC'], required = True)
+    parser.add_argument('--method', choices = ['kmeans_spa','louvain_spa','scc_louvain', 'scc_leiden'], required = True)
     parser.add_argument('--plot', choices=['yes', 'no'], required = True)
     parser.add_argument('--weight', type = float, required = 'kmeans_spa' in sys.argv)
-    parser.add_argument('--clust_type', choices = ['louvain', 'leidan'], required = 'SCC' in sys.argv)
+    #parser.add_argument('--clust_type', choices = ['louvain', 'leiden'], required = 'SCC' in sys.argv)
     args = parser.parse_args()
     
     # Create anndata
@@ -100,15 +100,10 @@ if __name__ == '__main__':
     # Clustering by choosen method
     if args.method == 'kmeans_spa':
         kmeans_spa(adata, args.weight)
-        if args.plot == 'yes':
-            sc.pl.spatial(adata, color = 'Kmeans', gene_symbols = list(adata.var_names), spot_size = 28, save = 'Kmeans_spa.png')
     elif args.method == 'louvain_spa':
-        louvain_spa(adata)
-        if args.plot == 'yes':
-            sc.pl.spatial(adata, color= 'louvain_spa', title = 'Louvain clustering', gene_symbols = list(adata.var_names), spot_size = 25, save = 'Louvain_clustering.png')        
+        louvain_spa(adata)     
     else:
-        scc(adata, args.clust_type)
-        if args.plot == 'yes' and args.clust_type == 'louvain':
-            sc.pl.spatial(adata, color='scc_louvian', gene_symbols = list(adata.var_names), spot_size= 42, save = 'scc_louvain.png')
-        elif args.plot == 'yes' and args.clust_type == 'leidan':
-            sc.pl.spatial(adata, color = 'scc_leidan', gene_symbols = list(adata.var_names), spot_size= 42, save = 'scc_leidan.png')
+        scc(adata, args.method)
+
+    if args.plot == 'yes':
+        sc.pl.spatial(adata, color = args.method, spot_size = 30, save = f'{args.method}.png')
