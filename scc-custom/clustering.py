@@ -1,5 +1,6 @@
 import sys
 import argparse
+import logging
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -12,7 +13,9 @@ from sklearn.preprocessing import normalize
 from sklearn.cluster import KMeans
 import louvain
 
+logging.basicConfig(level = logging.INFO, format='%(levelname)s:%(message)s')
 def read_gem(data):
+    logging.info('Creating anndata from gem file')
     data.set_index('geneID', inplace = True)
     data_pivoted = pd.pivot_table(data, index = ['cell','x','y'], columns = data.index, aggfunc ='sum', fill_value = 0)
     cell_id = list(data_pivoted.index.get_level_values(0))
@@ -30,6 +33,7 @@ def read_gem(data):
 
 # Kmeans clustering
 def kmeans_spa(adata, scaler):
+    logging.info('Kmeans clustering - preprocessing data')
     sc.pp.normalize_total(adata, target_sum=1e4, inplace = True)
     sc.pp.log1p(adata)
     sc.tl.pca(adata, svd_solver='arpack')
@@ -45,23 +49,24 @@ def kmeans_spa(adata, scaler):
     kmeans = KMeans(n_clusters = num_cl, init = 'k-means++', random_state = 42, n_init = 10).fit(adata.obsm['umap_with_spatial'])
     label = kmeans.predict(adata.obsm['umap_with_spatial'])
     adata.obs['kmeans_spa'] = label
-    adata.write('results_with_kmeans.h5ad')
 
 # Louvain clustering 
 def louvain_spa(adata):
+    logging.info('Louvain clustering - preprocessing data')
     sc.pp.normalize_total(adata, target_sum=1e4, inplace = True)
     sc.pp.log1p(adata)
     sc.tl.pca(adata, svd_solver='arpack')
     sc.pp.neighbors(adata, n_pcs=30)
     sc.tl.umap(adata)
     sc.tl.louvain(adata, resolution = 1.4, key_added='louvain_spa')
-    adata.write('results_with_louvain.h5ad')
 
 # SCC with Louvain or Leiden
 def scc(adata, clustering_type):
+    logging.info('SCC clustering - preprocessing data')
     sc.pp.normalize_total(adata, target_sum=1e4, inplace = True)
     sc.pp.log1p(adata)
     sc.tl.pca(adata, svd_solver='arpack')
+    logging.info('SCC clustering - creating neighborhood graph')
     # Creating neighborhood graph based on distance in transcriptomic space (30-nearest neighbors)
     sc.pp.neighbors(adata, n_neighbors = 30, n_pcs=30, key_added = 'gene_expression')
     #Creating neighborhood graph based on distance in physical space (8-nearest neighbors)
@@ -75,7 +80,6 @@ def scc(adata, clustering_type):
         sc.tl.leiden(adata, 
                 adjacency = (adata.obsp['gene_expression_connectivities'] + adata.obsp['physical_space_connectivities']),
                 key_added = 'scc_leiden' )
-    adata.write('results_with_scc.h5ad')
 #_________________________________________________________________________________________________________
 if __name__ == '__main__':
 
@@ -104,6 +108,7 @@ if __name__ == '__main__':
         louvain_spa(adata)     
     else:
         scc(adata, args.method)
-
+    
+    #adata.write(f'results_with_{args.method}.h5ad')
     if args.plot == 'yes':
         sc.pl.spatial(adata, color = args.method, spot_size = 30, save = f'{args.method}.png')
