@@ -8,6 +8,10 @@ import matplotlib.pyplot as plt
 from core import ClusteringAlgorithm
 
 class SccAlgo(ClusteringAlgorithm):
+    def __init__(self, adata, **params):
+        super().__init__(adata, **params)
+        self.filename = adata.uns['sample_name'] + f"_scc_{self.n_neigh_gene}_{self.n_neigh_space}_{self.resolution}" 
+        self.cluster_key = 'scc'
 
     def run(self):
         self.preprocess()
@@ -23,15 +27,13 @@ class SccAlgo(ClusteringAlgorithm):
         sc.tl.leiden(self.adata, 
                     adjacency = adj,
                     resolution = self.resolution,
-                    key_added = 'scc'
+                    key_added = self.cluster_key
             )
-        logging.info(r"SCC clustering done. Added results to adata.obsm['scc']")
+        logging.info(r"SCC clustering done. Added results to adata.obs['scc']")
     
     def save_results(self):
-        self.adata.uns['sample_name'] = os.path.join(self.adata.uns['algo_params']['out_path'], os.path.basename(self.adata.uns['algo_params']['file'].rsplit(".", 1)[0]))
-        filename = adata.uns['sample_name'] + f"_scc_{self.n_neigh_gene}_{self.n_neigh_space}_{self.resolution}.h5ad" 
-        self.adata.write(filename, compression="gzip")
-        logging.info(f'Saved clustering result {filename}.h5ad.')
+        self.adata.write(f'{self.filename}.h5ad', compression="gzip")
+        logging.info(f'Saved clustering result {self.filename}.h5ad')
 
 
 if __name__ == '__main__':
