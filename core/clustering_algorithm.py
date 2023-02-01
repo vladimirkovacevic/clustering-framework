@@ -9,6 +9,7 @@ from sklearn.metrics.cluster import contingency_matrix
 from sklearn.metrics import adjusted_rand_score, v_measure_score, mutual_info_score
 from abc import ABC, abstractmethod
 
+
 class ClusteringAlgorithm(ABC):
     def __init__(self, adata, **params):
         self.adata = adata
@@ -35,11 +36,12 @@ class ClusteringAlgorithm(ABC):
 
     def plot_clustering_against_ground_truth(
         self,
-        labels_true='annotation',
+        labels_true='sim anno',
         labels_pred='clusters'
         ):
         # Remap obtained clustering to ground truth
         labels_pred = self.cluster_key
+        labels_true = 'sim anno'
         cm = contingency_matrix(labels_true=self.adata.obs[labels_true], labels_pred=self.adata.obs[labels_pred])
         cont_df = pd.DataFrame(cm, index=sorted(set(self.adata.obs[labels_true])), columns=sorted(set(self.adata.obs[labels_pred])))
         remap_dict = {col:cont_df.index[np.argmax(cont_df[col])] for col in cont_df.columns}
@@ -55,15 +57,9 @@ class ClusteringAlgorithm(ABC):
 
         # Plot ground truth
         self.plot_clustering(color=[labels_true], sample_name=f'{self.filename}_ground_truth.png', palette=colors)
-        # sc.pl.spatial(self.adata, color=[labels_true], palette=colors, spot_size=self.spot_size)
-        # plt.savefig(f'{self.filename}_ground_truth.png', dpi=200, bbox_inches='tight')
-        # plt.close()
 
         # Plot remaped clusters
         self.plot_clustering(color=[labels_pred + '_remap'], sample_name=f'{self.filename}.png', palette=remaped_colors)
-        # sc.pl.spatial(self.adata, color=[labels_pred + '_remap'], palette=remaped_colors, spot_size=self.spot_size)
-        # plt.savefig(f'{sample_name}_ground_truth.png', dpi=200, bbox_inches='tight')
-        # plt.close()
 
     def plot_clustering(
         self,

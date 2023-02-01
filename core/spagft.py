@@ -26,17 +26,19 @@ class SpagftAlgo(ClusteringAlgorithm):
             raise KeyError("Spatial info is not avaliable in adata.obsm_keys == 'spatial' or adata.obs_keys ['x', 'y']")
         # find SVGs
         spg.rank_gene_smooth(self.adata,
-                            ratio_low_freq=0.5,
-                            ratio_high_freq=3,
-                            ratio_neighbors=1,
+                            # ratio_low_freq=0.5,
+                            # ratio_high_freq=3,
+                            # ratio_neighbors=1,
                             spatial_info=spatial_key)
         logging.info(f'Identified spatially variable genes')
         # identify tissue modules
         spg.gft.find_tissue_module(self.adata, 
-                                    ratio_fms=2,
-                                    ratio_neighbors=1,
+                                    # ratio_fms=2,
+                                    # ratio_neighbors=1,
                                     spatial_info=spatial_key,
-                                    quantile=0.85)
+                                    # quantile=0.85,
+                                    resolution=self.resolution
+                                    )
         logging.info(f'Identified tissue modules')
 
         self.adata.obsm['tm_pseudo_expression_val'] = self.adata.obsm['tm_pseudo_expression'].values
