@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import scipy
 from scipy.sparse import csr_matrix
-import anndata as ad
+from anndata import AnnData
 import scanpy as sc
 from sklearn.preprocessing import normalize
 from sklearn.cluster import KMeans
@@ -16,7 +16,7 @@ import louvain
 logging.basicConfig(level = logging.INFO, format='%(levelname)s:%(message)s')
 
 #def read_gem(data):
-def read_gem(data: pd.DataFrame) -> ad.AnnData:
+def read_gem(data: pd.DataFrame) -> AnnData:
     """
     Read GEM file and return AnnData object.
     
@@ -24,7 +24,7 @@ def read_gem(data: pd.DataFrame) -> ad.AnnData:
         data (pd.DataFrame): Input data frame containing gene expression information.
     
     Returns:
-        ad.AnnData: AnnData object containing sparse matrix representation of gene expression data, 
+        AnnData: AnnData object containing sparse matrix representation of gene expression data, 
                 cell IDs stored in `obs_names` attribute, gene IDs stored in `var_names` attribute 
                 and spatial cell coordinates stored in 'spatial' attribute of the `obsm` attribute.
                 
@@ -35,7 +35,7 @@ def read_gem(data: pd.DataFrame) -> ad.AnnData:
     cell_id = list(map(str, cell_id))
     gene_id = list(data_pivoted.columns.get_level_values(1))
     sparse_matrix = scipy.sparse.csr_matrix(data_pivoted)
-    adata = ad.AnnData(sparse_matrix, dtype = np.float32)
+    adata = AnnData(sparse_matrix, dtype = np.float32)
     df_pivot_reset_index = data_pivoted.reset_index(level =['cell','x','y'])
     cell_coord = df_pivot_reset_index.loc[:,['cell','x','y']]
     cell_coord = np.array(cell_coord.drop('cell', axis = 1, level = 0))
@@ -47,13 +47,13 @@ def read_gem(data: pd.DataFrame) -> ad.AnnData:
     return adata
 
 # Kmeans clustering
-def kmeans_spa(adata: ad.AnnData, expression_weight: float) -> None:
+def kmeans_spa(adata: AnnData, expression_weight: float) -> None:
     """
     Perform KMeans clustering on the UMAP with spatial information 
     and store the results in the input AnnData object.
 
     Parameters:
-    -   adata (ad.AnnData): An anndata object (adata) containing the cell information and spatial coordination.
+    -   adata (AnnData): An anndata object (adata) containing the cell information and spatial coordination.
     -   expression_weight (float): The weight to be given to the gene expression in clustering.
 
     Returns: 
@@ -80,7 +80,7 @@ def kmeans_spa(adata: ad.AnnData, expression_weight: float) -> None:
     logging.info('\'kmeans_spa\' key added in adata.obs')
 
 # Louvain clustering 
-def louvain_spa(adata: ad.AnnData) -> None:
+def louvain_spa(adata: AnnData) -> None:
     """
     Perform Louvain clustering on UMAP reduced gene expression data and store the results in the input AnnData object.
 
@@ -103,7 +103,7 @@ def louvain_spa(adata: ad.AnnData) -> None:
     logging.info('\'louvain_spa\' key added in adata.obs')
 
 # SCC with Louvain or Leiden
-def scc(adata: ad.AnnData, clustering_type: str) -> None:
+def scc(adata: AnnData, clustering_type: str) -> None:
     """
     Preform spatialy-constraind clustering (SCC).
     Constructs two k-nearest neighbor graphs 
@@ -111,7 +111,7 @@ def scc(adata: ad.AnnData, clustering_type: str) -> None:
     Perform Louvain/Leiden clustering on union graph. 
 
     Parameters:
-    -   adata (ad.AnnData): An AnnData object containing cell information and gene expression data.
+    -   adata (AnnData): An AnnData object containing cell information and gene expression data.
     -   clustering_type (str): Louvain or Leidan clustering, runned after creating union graph.
     
     Returns:
