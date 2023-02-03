@@ -10,22 +10,16 @@ from core import calculate_clustering_metrics
 from core import plot_clustering_against_ground_truth
 from core import SpagftAlgo
 from core import SccAlgo
-# from core import ClusteringAlgorithm
-
-
 
 logging.basicConfig(level=logging.INFO)
 
-
-# adata = sc.read("/home/ubuntu/results/Mouse_embryo_E9.5_E1S1.MOSTA.scc.out.h5ad")
-
-
-# res = calculate_clustering_metrics(adata)
-
-# print(res)
-
-# plot_clustering_against_ground_truth(adata, sample_name="Mouse_embryo_E9.5_E1S1.MOSTA")
-
+def PerformClustering(algo):
+    algo.run()
+    if any(set(['celltype_pred', 'annotation']).intersection(set(algo.adata.obs_keys()))):
+        algo.calculate_clustering_metrics()
+        algo.plot_clustering_against_ground_truth()
+    else:
+        algo.plot_clustering(sample_name=f'{algo.filename}.png')
 
 if __name__ == '__main__':
 
@@ -33,11 +27,13 @@ if __name__ == '__main__':
     sc.settings.set_figure_params(dpi=300, facecolor='white')
     parser = ap.ArgumentParser(description='A script that performs clustering with tissue modules identified using SpaGFT')
     parser.add_argument('-f', '--file', help='File that contain data to be clustered', type=str, required=True)
+    parser.add_argument('-m', '--method', help='A type of tissue clustering method to perform', type=str, choices=['spagft', 'scc', 'all'], default='spagft')
     parser.add_argument('-o', '--out_path', help='Path to store outputs', type=str, required=False)
     parser.add_argument('-r', '--resolution', help='All: Resolution of the clustering algorithm', type=float, required=False, default=2)
     parser.add_argument('--n_neigh_gene', help='SCC: Number of neighbors using pca of gene expression', type=float, required=False, default=30)
     parser.add_argument('--n_neigh_space', help='SCC: Number of neighbors using spatial distance', type=float, required=False, default=8)
     parser.add_argument('-s', '--spot_size', help='Size of the spot on plot', type=float, required=False, default=30)
+    parser.add_argument('-v', '--verbose', help='Show logging messages', action='count', default=0)
 
     parser.add_argument('--spagft__method', help='Algorithm to be used after SpaGFT dim red', type=str, required=False, default='louvain', choices=['louvain','spectral'])
     parser.add_argument('--spagft__ratio_low_freq', help='ratio_low_freq', type=float, required=False, default=0.5)
@@ -49,6 +45,10 @@ if __name__ == '__main__':
     parser.add_argument('--spagft__n_clusters', help='n_clusters', type=float, required=False, default=12)
 
     args = parser.parse_args()
+
+    if args.verbose == 0:
+        logging.basicConfig(level=logging.WARNING, force=True)
+
 
     if not (args.file.endswith('.h5ad') or args.file.endswith('.gef')):
         raise AttributeError(f"File '{args.file}' extension is not .h5ad or .gef")
@@ -62,28 +62,17 @@ if __name__ == '__main__':
     if not scipy.sparse.issparse(adata.X):
         adata.X = scipy.sparse.csr_matrix(adata.X)
 
-    adataSpa = adata.copy()
-
-    # scc_algo = SccAlgo(adata, **vars(args))
-    spagft_algo = SpagftAlgo(adataSpa, **vars(args))
-
-    # ClusteringAlgorithm.calculate_clustering_metrics(scc_algo.adata) #TODO consider making this function static as well as plotting and analysis functions
-
-    # scc_algo.run()
-    # if any(set(['celltype_pred', 'annotation']).intersection(set(spagft_algo.adata.obs_keys()))):
-    #     scc_algo.calculate_clustering_metrics()
-    #     scc_algo.plot_clustering_against_ground_truth()
-    # else:
-    #     scc_algo.plot_clustering(sample_name=f'{scc_algo.filename}.png')
-    # scc_algo.save_results()
-
-    spagft_algo.run()
-    if any(set(['celltype_pred', 'annotation']).intersection(set(spagft_algo.adata.obs_keys()))):
-        spagft_algo.calculate_clustering_metrics()
-        spagft_algo.plot_clustering_against_ground_truth()
+    all_methods = {'scc':SccAlgo, 'spagft':SpagftAlgo}
+    if args.method == 'all':
+        for method in all_methods:
+            algo = all_methods[method](adata, **vars(args))
+            PerformClustering(algo)
     else:
-        spagft_algo.plot_clustering(sample_name=f'{spagft_algo.filename}.png')
-    spagft_algo.save_results()
+        algo = all_methods[args.method](adata, **vars(args))
+        PerformClustering(algo)
+
+    algo.save_results()
+    
 
 
 
