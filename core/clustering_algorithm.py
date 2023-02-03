@@ -36,12 +36,12 @@ class ClusteringAlgorithm(ABC):
 
     def plot_clustering_against_ground_truth(
         self,
-        labels_true='sim anno',
+        labels_true='annotation',
         labels_pred='clusters'
         ):
         # Remap obtained clustering to ground truth
         labels_pred = self.cluster_key
-        labels_true = 'sim anno'
+        labels_true = list(set(['celltype_pred','annotation']).intersection(set(self.adata.obs_keys())))[0]
         cm = contingency_matrix(labels_true=self.adata.obs[labels_true], labels_pred=self.adata.obs[labels_pred])
         cont_df = pd.DataFrame(cm, index=sorted(set(self.adata.obs[labels_true])), columns=sorted(set(self.adata.obs[labels_pred])))
         remap_dict = {col:cont_df.index[np.argmax(cont_df[col])] for col in cont_df.columns}
@@ -63,16 +63,18 @@ class ClusteringAlgorithm(ABC):
 
     def plot_clustering(
         self,
-        sample_name,
+        sample_name="unknown",
         color=['clusters'],
         palette=None
         ):
+        color = [self.cluster_key]
         sc.pl.spatial(self.adata, color=color, palette=palette, spot_size=self.spot_size)
         plt.savefig(sample_name, dpi=200, bbox_inches='tight')
         plt.close()
 
-    def calculate_clustering_metrics(self, labels_true='annotation'):
+    def calculate_clustering_metrics(self):
         res_dict = {}
+        labels_true = list(set(['celltype_pred','annotation']).intersection(set(self.adata.obs_keys())))[0]
         for scorer, label in zip([adjusted_rand_score, v_measure_score, mutual_info_score], ['ARS', 'V-Score','Mut-info']):
             res = scorer(labels_true=self.adata.obs[labels_true], labels_pred=self.adata.obs[self.cluster_key])
             res_dict[label] = np.round(res, 3)

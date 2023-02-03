@@ -10,6 +10,7 @@ import scanpy as sc
 import matplotlib.pyplot as plt
 import scipy
 
+from sklearn.cluster import spectral_clustering
 from core import ClusteringAlgorithm
 
 class SpagftAlgo(ClusteringAlgorithm):
@@ -19,34 +20,39 @@ class SpagftAlgo(ClusteringAlgorithm):
         self.cluster_key = 'spagft'
 
     def run(self):
-        self.preprocess()
-        spatial_key = 'spatial' if 'spatial' in self.adata.obsm_keys() else ['x', 'y'] if set(['x', 'y']) <= set(self.adata.obs_keys()) else None
+        if 'tm_pseudo_expression' not in self.adata.obsm_keys():
+            self.preprocess()
+            spatial_key = 'spatial' if 'spatial' in self.adata.obsm_keys() else ['x', 'y'] if set(['x', 'y']) <= set(self.adata.obs_keys()) else None
 
-        if not spatial_key:
-            raise KeyError("Spatial info is not avaliable in adata.obsm_keys == 'spatial' or adata.obs_keys ['x', 'y']")
-        # find SVGs
-        spg.rank_gene_smooth(self.adata,
-                            # ratio_low_freq=0.5,
-                            # ratio_high_freq=3,
-                            # ratio_neighbors=1,
-                            spatial_info=spatial_key)
-        logging.info(f'Identified spatially variable genes')
-        # identify tissue modules
-        spg.gft.find_tissue_module(self.adata, 
-                                    # ratio_fms=2,
-                                    # ratio_neighbors=1,
-                                    spatial_info=spatial_key,
-                                    # quantile=0.85,
-                                    resolution=self.resolution
-                                    )
-        logging.info(f'Identified tissue modules')
+            if not spatial_key:
+                raise KeyError("Spatial info is not avaliable in adata.obsm_keys == 'spatial' or adata.obs_keys ['x', 'y']")
+            # find SVGs
+            spg.rank_gene_smooth(self.adata,
+                                ratio_low_freq=self.spagft__ratio_low_freq, #prebaci u main, dodaj parametar za clustering da ima za spectral - samo za spagft se odnosi za sad. kasnije mozda strategija
+                                ratio_high_freq=self.spagft__ratio_high_freq,
+                                ratio_neighbors=self.spagft__ratio_neighbors,
+                                spatial_info=spatial_key)
+            logging.info(f'Identified spatially variable genes')
+            # identify tissue modules
+            spg.gft.find_tissue_module(self.adata, 
+                                        ratio_fms=self.spagft__ratio_fms,
+                                        ratio_neighbors=self.spagft__ratio_neighbors,
+                                        spatial_info=spatial_key,
+                                        quantile=self.quantile,
+                                        resolution=self.resolution
+                                        )
+            logging.info(f'Identified tissue modules')
+            self.adata.obsm['tm_pseudo_expression_val'] = self.adata.obsm['tm_pseudo_expression'].values
+            sc.pp.neighbors(self.adata, 
+                            n_neighbors=self.spagft__n_neighbors, 
+                            n_pcs=len(self.adata.obsm['tm_pseudo_expression'].columns), 
+                            use_rep='tm_pseudo_expression_val')
 
-        self.adata.obsm['tm_pseudo_expression_val'] = self.adata.obsm['tm_pseudo_expression'].values
-        sc.pp.neighbors(self.adata, 
-                        n_neighbors=220, 
-                        n_pcs=len(self.adata.obsm['tm_pseudo_expression'].columns), 
-                        use_rep='tm_pseudo_expression_val')
-        sc.tl.louvain(self.adata, key_added=self.cluster_key)
+        if self.spagft__method == 'spectral':
+            self.adata.obs[self.cluster_key] = pd.Categorical(spectral_clustering(self.adata.obsp['connectivities'], n_clusters=self.spagft__n_clusters))
+        else:
+            sc.tl.louvain(self.adata, key_added=self.cluster_key)
+
         logging.info(r"SpaGFT clustering done. Added results to adata.obs['spagft']")
 
         
