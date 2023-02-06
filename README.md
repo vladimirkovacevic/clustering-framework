@@ -1,4 +1,4 @@
-<h1>Clustering Script</h1>
+<h1>Clustering Framework</h1>
 
 <p>This script performs clustering on single-cell RNA sequencing data using SpaGFT and SCC algorithms. It takes input file, output path, resolution, and other parameters and produces clustering results in form of plots, clustering metrics, and saved results.</p>
 
