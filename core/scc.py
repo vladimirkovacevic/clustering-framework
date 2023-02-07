@@ -10,7 +10,7 @@ from core import ClusteringAlgorithm
 class SccAlgo(ClusteringAlgorithm):
     def __init__(self, adata, **params):
         super().__init__(adata, **params)
-        self.filename = adata.uns['sample_name'] + f"_scc_{self.n_neigh_gene}_{self.n_neigh_space}_{self.resolution}" 
+        self.filename = self.adata.uns['sample_name'] + f"_scc_{self.n_neigh_gene}_{self.n_neigh_space}_{self.resolution}" 
         self.cluster_key = 'scc'
 
     def run(self):

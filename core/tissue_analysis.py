@@ -1,11 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# ## Analyse tissue
-
-# In[1]:
-
-
 import os
 import json
 import argparse
@@ -17,6 +9,7 @@ import scanpy as sc
 import stereo as st
 import matplotlib.pyplot as plt
 import seaborn as sns
+
 from scipy import sparse
 from tqdm import tqdm
 
@@ -44,8 +37,8 @@ def generate_stats(adata, sample_name:str):
 
     sns.histplot(adata.obs['genes_expressed_per_cell'])
     plt.axvline(x=meanval, color='red')
-    plt.title('{} - {}x{} obs x genes\nNumber of genes expressed in each cell. Mean = {}, std = {}'.format(fname.split('.')[0], nobs, ngenes, meanval, std))    
-    plt.savefig('genes_per_cell_{}.png'.format(sample_name), dpi=200, bbox_inches='tight')
+    plt.title('{} - {}x{} obs x genes\nNumber of genes expressed in each cell. Mean = {}, std = {}'.format(fname.rsplit('.', 1)[0], nobs, ngenes, meanval, std))    
+    plt.savefig('{}_genes_per_cell.png'.format(sample_name), dpi=200, bbox_inches='tight')
     plt.close()
 
     n_neighbors = 4
@@ -90,7 +83,7 @@ def generate_stats(adata, sample_name:str):
     sns.histplot(cell_intersect_neigh_perc)
     plt.axvline(x=meanval, color='red')
     plt.title(f'{sample_name} - {nobs}x{ngenes} obs x genes\nDistribution of percentage of intersecting expressed \n genes with {n_neighbors} spatially closest observations \nMean = {meanval}, std = {std}')
-    plt.savefig(f'dist_percentage_{sample_name}.png', dpi=200, bbox_inches='tight')
+    plt.savefig(f'{sample_name}_dist_percentage.png', dpi=200, bbox_inches='tight')
     plt.close()
     report_dict[f'Mean of percentage of intersecting expressed genes with {n_neighbors} spatially closest observations'] = np.round(100*cell_intersect_neigh_perc.mean(), 2)
     report_dict[f'Std of percentage of intersecting expressed genes with {n_neighbors} spatially closest observations'] = np.round(100*cell_intersect_neigh_perc.std(), 2)
@@ -102,7 +95,7 @@ def generate_stats(adata, sample_name:str):
     sns.histplot(cell_intersect_neigh_count)
     plt.axvline(x=meanval, color='red')
     plt.title(f'{sample_name} - {nobs}x{ngenes} obs x genes\nDistribution of number of intersecting expressed \n genes with {n_neighbors} spatially closest observations \nMean = {meanval}, std = {std}')
-    plt.savefig(f'dist_count_{sample_name}.png', dpi=200, bbox_inches='tight')
+    plt.savefig(f'{sample_name}_dist_count.png', dpi=200, bbox_inches='tight')
     plt.close()
     report_dict[f'Mean of number of intersecting expressed genes with {n_neighbors} spatially closest observations'] = np.round(cell_intersect_neigh_count.mean(), 2)
     report_dict[f'Std of number of intersecting expressed genes with {n_neighbors} spatially closest observations'] = np.round(cell_intersect_neigh_count.std(), 2)
@@ -113,15 +106,20 @@ def generate_stats(adata, sample_name:str):
 
     plt.title('{} - {}x{} obs x genes\nPercentage and number of intersecting genes \nwith {} closest neighboring cells'.format(
         sample_name.split('.')[0], nobs, ngenes, n_neighbors), fontsize=12, y=1.3, x=-2.5)
-    plt.savefig(f'perc_number_{sample_name}.png', dpi=200, bbox_inches='tight')
+    plt.savefig(f'{sample_name}_perc_number.png', dpi=200, bbox_inches='tight')
 
     json.dump(report_dict, open(sample_name + '.json', 'w'), indent=True)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--fname', type = str, required=True)
+    parser.add_argument('-f', '--fname', type = str, required=True)
+    parser.add_argument('-o', '--out_path', help='Absolute path to store outputs', type=str, required=True)
     args = parser.parse_args()
     fname = args.fname
+
+    if not os.path.exists(args.out_path):
+        os.makedirs(args.out_path)
+
     if fname.endswith('.h5ad'):
         adata = sc.read(fname)
     elif fname.endswith('.gef'):
@@ -130,5 +128,4 @@ if __name__ == '__main__':
     else:
         print('Input format not supported')
 
-    generate_stats(adata, fname.split('/')[-1])
-
+    generate_stats(adata, os.path.join(args.out_path, fname.split('/')[-1]))

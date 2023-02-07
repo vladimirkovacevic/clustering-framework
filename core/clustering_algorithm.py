@@ -31,7 +31,8 @@ class ClusteringAlgorithm(ABC):
         self.adata.raw = self.adata
         sc.pp.filter_genes(self.adata, min_cells=10)
         sc.pp.normalize_total(self.adata, inplace=True)
-        sc.pp.log1p(self.adata)
+        if "log1p" not in self.adata.uns_keys():
+            sc.pp.log1p(self.adata)
         logging.info(f'Finished preprocessing')
 
     def plot_clustering_against_ground_truth(

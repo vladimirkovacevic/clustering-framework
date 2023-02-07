@@ -38,7 +38,7 @@ class SpagftAlgo(ClusteringAlgorithm):
                                         ratio_fms=self.spagft__ratio_fms,
                                         ratio_neighbors=self.spagft__ratio_neighbors,
                                         spatial_info=spatial_key,
-                                        quantile=self.quantile,
+                                        quantile=self.spagft__quantile,
                                         resolution=self.resolution
                                         )
             logging.info(f'Identified tissue modules')
@@ -60,6 +60,8 @@ class SpagftAlgo(ClusteringAlgorithm):
         self.adata.uns['freq_signal_tm'] = [] # TODO enable DataFrames to be written to .h5ad. For now exclude them
         self.adata.uns['freq_signal_subTM'] = []
         self.adata.uns['gft_umap_tm'] = []
+        if self.method == 'all':
+            self.filename = self.adata.uns['sample_name'] + "_all"
         self.adata.write(f'{self.filename}.h5ad', compression="gzip")
         logging.info(f'Saved clustering result {self.filename}.h5ad.')
 

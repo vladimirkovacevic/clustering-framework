@@ -27,8 +27,8 @@ if __name__ == '__main__':
     sc.settings.set_figure_params(dpi=300, facecolor='white')
     parser = ap.ArgumentParser(description='A script that performs clustering with tissue modules identified using SpaGFT')
     parser.add_argument('-f', '--file', help='File that contain data to be clustered', type=str, required=True)
-    parser.add_argument('-m', '--method', help='A type of tissue clustering method to perform', type=str, choices=['spagft', 'scc', 'all'], default='spagft')
-    parser.add_argument('-o', '--out_path', help='Path to store outputs', type=str, required=False)
+    parser.add_argument('-m', '--method', help='A type of tissue clustering method to perform', type=str, required=False, choices=['spagft', 'scc', 'all'], default='spagft')
+    parser.add_argument('-o', '--out_path', help='Absolute path to store outputs', type=str, required=True)
     parser.add_argument('-r', '--resolution', help='All: Resolution of the clustering algorithm', type=float, required=False, default=2)
     parser.add_argument('--n_neigh_gene', help='SCC: Number of neighbors using pca of gene expression', type=float, required=False, default=30)
     parser.add_argument('--n_neigh_space', help='SCC: Number of neighbors using spatial distance', type=float, required=False, default=8)
@@ -49,6 +49,8 @@ if __name__ == '__main__':
     if args.verbose == 0:
         logging.basicConfig(level=logging.WARNING, force=True)
 
+    if not os.path.exists(args.out_path):
+        os.makedirs(args.out_path)
 
     if not (args.file.endswith('.h5ad') or args.file.endswith('.gef')):
         raise AttributeError(f"File '{args.file}' extension is not .h5ad or .gef")
@@ -72,10 +74,3 @@ if __name__ == '__main__':
         PerformClustering(algo)
 
     algo.save_results()
-    
-
-
-
-    
-
-
