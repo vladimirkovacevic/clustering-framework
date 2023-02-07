@@ -69,8 +69,9 @@ class ClusteringAlgorithm(ABC):
         palette=None
         ):
         color = [self.cluster_key]
-        sc.pl.spatial(self.adata, color=color, palette=palette, spot_size=self.spot_size)
-        plt.savefig(sample_name, dpi=200, bbox_inches='tight')
+        figure, ax = plt.subplots(nrows=1, ncols=1)
+        sc.pl.spatial(self.adata, color=color, palette=palette, spot_size=self.spot_size, ax=ax, show=False)
+        figure.savefig(sample_name, dpi=200, bbox_inches='tight')
         plt.close()
 
     def calculate_clustering_metrics(self):

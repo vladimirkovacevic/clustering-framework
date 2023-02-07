@@ -7,7 +7,6 @@ import scanpy as sc
 import stereo as st
 
 from core import calculate_clustering_metrics
-from core import plot_clustering_against_ground_truth
 from core import SpagftAlgo
 from core import SccAlgo
 
