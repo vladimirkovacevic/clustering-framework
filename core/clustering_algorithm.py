@@ -57,7 +57,7 @@ class ClusteringAlgorithm(ABC):
                 remaped_colors.append(c)
 
         # Plot ground truth
-        self.plot_clustering(color=[labels_true], sample_name=f'{self.filename}_ground_truth.png', palette=colors)
+        self.plot_clustering(color=[labels_true], sample_name=f"{self.adata.uns['sample_name']}_ground_truth.png", palette=colors)
 
         # Plot remaped clusters
         self.plot_clustering(color=[labels_pred + '_remap'], sample_name=f'{self.filename}.png', palette=remaped_colors)
@@ -68,7 +68,6 @@ class ClusteringAlgorithm(ABC):
         color=['clusters'],
         palette=None
         ):
-        color = [self.cluster_key]
         figure, ax = plt.subplots(nrows=1, ncols=1)
         sc.pl.spatial(self.adata, color=color, palette=palette, spot_size=self.spot_size, ax=ax, show=False)
         figure.savefig(sample_name, dpi=200, bbox_inches='tight')

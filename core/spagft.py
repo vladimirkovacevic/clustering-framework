@@ -16,7 +16,7 @@ from core import ClusteringAlgorithm
 class SpagftAlgo(ClusteringAlgorithm):
     def __init__(self, adata, **params):
         super().__init__(adata, **params)
-        self.filename = self.adata.uns['sample_name'] + f"_spagft_{self.resolution}"
+        self.filename = self.adata.uns['sample_name'] + f"_spagft_r{self.resolution}_rl{self.spagft__ratio_low_freq}_rh{self.spagft__ratio_high_freq}_rn{self.spagft__ratio_neighbors}"
         self.cluster_key = 'spagft'
 
     def run(self):
