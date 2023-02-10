@@ -10,7 +10,6 @@ from sklearn.metrics.cluster import contingency_matrix
 from sklearn.metrics import adjusted_rand_score, v_measure_score, mutual_info_score
 from abc import ABC, abstractmethod
 
-NUM_MARKER_GENES = 15
 
 class ClusteringAlgorithm(ABC):
     def __init__(self, adata, **params):
@@ -54,21 +53,25 @@ class ClusteringAlgorithm(ABC):
         # Plot remaped clusters
         self.plot_clustering(color=[labels_pred + '_remap'], sample_name=f'{self.filename}.png', palette=remapped_colors)
 
-    def plot_tissue_modules_against_ground_truth(
+    def plot_tissue_domains_against_ground_truth(
         self,
         labels_true='annotation',
         labels_pred='clusters'
         ):
         labels_pred = self.cluster_key
         labels_true = list(set(['celltype_pred','annotation']).intersection(set(self.adata.obs_keys())))[0]
-        marker_gene_key_true = self.identify_marker_genes(labels_true)
-        marker_gene_key_pred = self.identify_marker_genes(labels_pred)
-        self.decide_tm_via_marker_genes(marker_gene_key_true, marker_gene_key_pred)
+        marker_gene_key_true = f"{labels_true}_marker_genes"
+        marker_gene_key_pred = f"{labels_pred}_marker_genes"
+        sc.tl.rank_genes_groups(self.adata, labels_true, method='t-test', key_added=marker_gene_key_true)
+        sc.tl.rank_genes_groups(self.adata, labels_pred, method='t-test', key_added=marker_gene_key_pred)
+        logging.info(f'Added marker genes in .uns as keys: {marker_gene_key_true} and {marker_gene_key_pred}')
+        
+        self.decide_td_via_marker_genes(marker_gene_key_true, marker_gene_key_pred)
 
         # Plot ground truth
         self.plot_clustering(color=[labels_true], sample_name=f"{self.adata.uns['sample_name']}_ground_truth.png", palette=list(self.adata.uns[labels_true + '_colors']))
         # Plot remaped clusters
-        self.plot_clustering(color=[marker_gene_key_pred + '_tm_remap'], sample_name=f'{self.filename}_tm_.png', palette=list(self.adata.uns[labels_true + '_colors']))
+        self.plot_clustering(color=[marker_gene_key_pred + '_td_remap'], sample_name=f'{self.filename}_tm.png', palette=list(self.adata.uns[labels_true + '_colors']))
     
     def plot_clustering(
         self,
@@ -110,22 +113,23 @@ class ClusteringAlgorithm(ABC):
                 remapped_colors.append(c)
         return remapped_colors
     
-    def decide_tm_via_marker_genes(
+    def decide_td_via_marker_genes(
         self,
         labels_true: str,
         labels_pred: str
         ):
-        tm_to_mg_actual_dict = {name: set(self.adata.uns[labels_true]['names'][name][:NUM_MARKER_GENES]) for name in self.adata.uns[labels_true]['names'].dtype.names}
-        tm_to_mg_predicted_dict = {name: set(self.adata.uns[labels_pred]['names'][name][:NUM_MARKER_GENES]) for name in self.adata.uns[labels_pred]['names'].dtype.names}
+        #tissue domains to marker genes dictionary
+        td_to_mg_actual_dict = {name: set(sc.get.rank_genes_groups_df(self.adata, name, pval_cutoff=0.05, key=labels_true).loc[:,'names'].values[:self.n_marker_genes]) \
+             for name in self.adata.uns[labels_true]['names'].dtype.names}
+        td_to_mg_predicted_dict = {name: set(sc.get.rank_genes_groups_df(self.adata, name, pval_cutoff=0.05, key=labels_pred).loc[:,'names'].values[:self.n_marker_genes]) \
+             for name in self.adata.uns[labels_pred]['names'].dtype.names}
 
-        def tissue_module_max_intersect(marker_genes_predicted):
-            num_intersecting_genes = {ground_truth_module: len(list(set(marker_genes_predicted).intersection(marker_genes_actual))) \
-                for ground_truth_module, marker_genes_actual in tm_to_mg_actual_dict.items()}
-            max_intersecting_module = max(num_intersecting_genes.items(), key=lambda kv: kv[1])[0]
-            return max_intersecting_module
-        
-        remap_predicted_dict = {k: tissue_module_max_intersect(v) for k, v in tm_to_mg_predicted_dict.items()}
-        self.adata.obs.loc[:,labels_pred + '_tm_remap'] = self.adata.obs[self.cluster_key].map(remap_predicted_dict)
+        remap_predicted_dict = {}
+        for key_p, val_p in td_to_mg_predicted_dict.items():
+            num_intersecting_genes = [(key_a, len(set(val_p).intersection(val_a))) for key_a, val_a in td_to_mg_actual_dict.items()]
+            remap_predicted_dict[key_p] = max(num_intersecting_genes, key=lambda x: x[1])[0]
+            
+        self.adata.obs.loc[:,labels_pred + '_td_remap'] = self.adata.obs[self.cluster_key].map(remap_predicted_dict)
 
     def identify_marker_genes(
         self,
