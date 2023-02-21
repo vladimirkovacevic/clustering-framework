@@ -16,7 +16,8 @@ def PerformClustering(algo):
     algo.run()
     if any(set(['celltype_pred', 'annotation']).intersection(set(algo.adata.obs_keys()))):
         algo.calculate_clustering_metrics()
-        algo.plot_clustering_against_ground_truth()
+        # algo.plot_clustering_against_ground_truth()
+        algo.plot_tissue_domains_against_ground_truth()
     else:
         algo.plot_clustering(color=[algo.cluster_key], sample_name=f'{algo.filename}.png')
 
@@ -32,6 +33,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_neigh_gene', help='SCC: Number of neighbors using pca of gene expression', type=float, required=False, default=30)
     parser.add_argument('--n_neigh_space', help='SCC: Number of neighbors using spatial distance', type=float, required=False, default=8)
     parser.add_argument('-s', '--spot_size', help='Size of the spot on plot', type=float, required=False, default=30)
+    parser.add_argument('--n_marker_genes', help='Number of marker genes used for tissue domain identification by intersection. Consider all genes by default.', type=int, required=False, default=-1)
     parser.add_argument('-v', '--verbose', help='Show logging messages', action='count', default=0)
 
     parser.add_argument('--spagft__method', help='Algorithm to be used after SpaGFT dim red', type=str, required=False, default='louvain', choices=['louvain','spectral'])
