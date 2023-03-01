@@ -6,6 +6,7 @@ import scanpy as sc
 import matplotlib.pyplot as plt
 
 from core import ClusteringAlgorithm
+from .utils import timeit
 
 class SccAlgo(ClusteringAlgorithm):
     def __init__(self, adata, **params):
@@ -13,6 +14,7 @@ class SccAlgo(ClusteringAlgorithm):
         self.filename = self.adata.uns['sample_name'] + f"_scc_ng{self.n_neigh_gene}_ns{self.n_neigh_space}_r{self.resolution}_mg{self.n_marker_genes}" 
         self.cluster_key = 'scc'
 
+    @timeit
     def run(self):
         self.preprocess()
         sc.pp.neighbors(self.adata, n_neighbors=self.n_neigh_gene, n_pcs=40)
