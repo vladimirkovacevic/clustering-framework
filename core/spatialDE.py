@@ -22,10 +22,8 @@ class SpatialdeAlgo(ClusteringAlgorithm):
         self.adata.uns['svg'] = results
 
         if self.svg_only:
-            logging.info(r"SpatialDE finished identifying spatially variable genes. Added results to adata.varm['svg']")
+            logging.info(r"SpatialDE finished identifying spatially variable genes. Added results to adata.uns['svg']")
             return
-        logging.info(r"SpatialDE finished identifying spatially variable genes. Added results to adata.varm['svg']")
-
         
     def save_results(self):
         self.adata.write(f'{self.filename}.h5ad', compression="gzip")
