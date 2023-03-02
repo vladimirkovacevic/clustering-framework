@@ -12,6 +12,7 @@ import scipy
 
 from sklearn.cluster import spectral_clustering
 from core import ClusteringAlgorithm
+from .utils import timeit
 
 class SpagftAlgo(ClusteringAlgorithm):
     def __init__(self, adata, **params):
@@ -19,6 +20,7 @@ class SpagftAlgo(ClusteringAlgorithm):
         self.filename = self.adata.uns['sample_name'] + f"_spagft_r{self.resolution}_rl{self.spagft__ratio_low_freq}_rh{self.spagft__ratio_high_freq}_rn{self.spagft__ratio_neighbors}__mg{self.n_marker_genes}"
         self.cluster_key = 'spagft'
 
+    @timeit
     def run(self):
         if 'tm_pseudo_expression' not in self.adata.obsm_keys():
             self.preprocess()
@@ -28,11 +30,13 @@ class SpagftAlgo(ClusteringAlgorithm):
                 raise KeyError("Spatial info is not avaliable in adata.obsm_keys == 'spatial' or adata.obs_keys ['x', 'y']")
             # find SVGs
             spg.rank_gene_smooth(self.adata,
-                                ratio_low_freq=self.spagft__ratio_low_freq, #prebaci u main, dodaj parametar za clustering da ima za spectral - samo za spagft se odnosi za sad. kasnije mozda strategija
+                                ratio_low_freq=self.spagft__ratio_low_freq,
                                 ratio_high_freq=self.spagft__ratio_high_freq,
                                 ratio_neighbors=self.spagft__ratio_neighbors,
                                 spatial_info=spatial_key)
             logging.info(f'Identified spatially variable genes')
+            if self.svg_only:
+                return
             # identify tissue modules
             spg.gft.find_tissue_module(self.adata, 
                                         ratio_fms=self.spagft__ratio_fms,

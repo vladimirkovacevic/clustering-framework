@@ -10,7 +10,6 @@ from sklearn.metrics.cluster import contingency_matrix
 from sklearn.metrics import adjusted_rand_score, v_measure_score, mutual_info_score
 from abc import ABC, abstractmethod
 
-
 class ClusteringAlgorithm(ABC):
     def __init__(self, adata, **params):
         self.adata = adata
@@ -27,11 +26,18 @@ class ClusteringAlgorithm(ABC):
     def save_results(self):
         pass
 
-    def preprocess(self):
+    def preprocess(
+        self,
+        min_genes=200,
+        min_cells=3,
+        target_sum=1e4, 
+        normalize=True
+        ):
         self.adata.var_names_make_unique()
-        sc.pp.filter_cells(self.adata, min_genes=200)
-        sc.pp.filter_genes(self.adata, min_cells=3)
-        sc.pp.normalize_total(self.adata, target_sum=1e4, inplace=True)
+        sc.pp.filter_cells(self.adata, min_genes)
+        sc.pp.filter_genes(self.adata, min_cells)
+        if normalize:
+            sc.pp.normalize_total(self.adata, target_sum, inplace=True)
         if "log1p" not in self.adata.uns_keys():
             sc.pp.log1p(self.adata)
         # sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5) TODO discuss if needed
