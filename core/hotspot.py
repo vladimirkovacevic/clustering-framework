@@ -53,7 +53,7 @@ class HotspotAlgo(ClusteringAlgorithm):
         logging.info(f'Selected {len(hs_genes)} with FDR < {self.hotspot__fdr_threshold}')
 
         # save gene modules to adata.uns
-        self.adata.uns['svg'] = hs_genes
+        self.adata.uns['svg'] = hs_genes.values
         logging.info(r"Hotspot finished identifying spatially variable genes. Added results to adata.uns['svg']")
 
         # Compute pair-wise local correlations between selected genes
@@ -72,8 +72,8 @@ class HotspotAlgo(ClusteringAlgorithm):
         logging.info(f'Genes groupping into modules finished (min_gene_threshold={self.hotspot__min_gene_threshold}, fdr_threshold={self.hotspot__fdr_threshold}).')
         
         # save gene modules to adata.uns
-        self.adata.uns['svg_modules'] = hs.modules
-        logging.info(r"Hotspot finished identifying spatially variable gene modules. Added results to adata.uns['svg_modules']")
+        self.adata.var['svg_modules'] = hs.modules
+        logging.info(r"Hotspot finished identifying spatially variable gene modules. Added results to adata.var['svg_modules']")
 
         # spatial information on modules can be obtained through per-cell module score
         # This is useful for visualizing the general pattern of expression for genes in a module.
@@ -82,7 +82,8 @@ class HotspotAlgo(ClusteringAlgorithm):
         if hs.module_scores.shape[1] == 0:
             logging.error(r'Zero modules created. Please decrease hotspot__min_gene_threshold.')
 
-        self.adata.obsm['embedding'] = hs.module_scores
+        # adding module scores as embedding for X
+        self.adata.obsm['embedding'] = hs.module_scores.values
         logging.info(r"Module scores saved in self.adata.obsm['embedding']")
 
         if self.svg_only:
@@ -94,7 +95,7 @@ class HotspotAlgo(ClusteringAlgorithm):
         self.adata.write(f'{self.filename}.h5ad', compression="gzip")
         logging.info(f'Saved clustering result {self.filename}.h5ad')
 
-        self.adata.uns['svg'].to_csv(f'{self.filename}_svg.csv', index=True)
-        self.adata.uns['svg_modules'].to_csv(f'{self.filename}_svg_modules.csv', index=True)
+        pd.DataFrame(self.adata.uns['svg']).to_csv(f'{self.filename}_svg.csv', index=True)
+        self.adata.var['svg_modules'].to_csv(f'{self.filename}_svg_modules.csv', index=True)
 
 
