@@ -4,3 +4,4 @@ from .plotting import plot_clustering_against_ground_truth
 from .spagft import SpagftAlgo
 from .scc import SccAlgo
 from .spatialDE import SpatialdeAlgo
+from .hotspot import HotspotAlgo

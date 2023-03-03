@@ -9,6 +9,7 @@ import stereo as st
 from core import SpagftAlgo
 from core import SccAlgo
 from core import SpatialdeAlgo
+from core import HotspotAlgo
 
 logging.basicConfig(level=logging.INFO)
 
@@ -30,7 +31,7 @@ if __name__ == '__main__':
     sc.settings.set_figure_params(dpi=300, facecolor='white')
     parser = ap.ArgumentParser(description='A script that performs clustering with tissue modules identified using SpaGFT')
     parser.add_argument('-f', '--file', help='File that contain data to be clustered', type=str, required=True)
-    parser.add_argument('-m', '--method', help='A type of tissue clustering method to perform', type=str, required=False, choices=['spagft', 'spatialde', 'scc', 'all'], default='spagft')
+    parser.add_argument('-m', '--method', help='A type of tissue clustering method to perform', type=str, required=False, choices=['spagft', 'spatialde', 'scc', 'hotspot', 'all'], default='spagft')
     parser.add_argument('-o', '--out_path', help='Absolute path to store outputs', type=str, required=True)
     parser.add_argument('-r', '--resolution', help='All: Resolution of the clustering algorithm', type=float, required=False, default=2)
     parser.add_argument('--n_neigh_gene', help='SCC: Number of neighbors using pca of gene expression', type=float, required=False, default=30)
@@ -39,6 +40,10 @@ if __name__ == '__main__':
     parser.add_argument('--n_marker_genes', help='Number of marker genes used for tissue domain identification by intersection. Consider all genes by default.', type=int, required=False, default=-1)
     parser.add_argument('-v', '--verbose', help='Show logging messages', action='count', default=0)
     parser.add_argument('--svg_only', help='Perform only identification of spatially variable genes', type=bool, default=True)
+    parser.add_argument('--use_hvgs', help='Use highly variable genes for downstream analysis', type=bool, required=False, default=True)
+    parser.add_argument('--n_hvgs', help='Number of highly variable genes used for downstream analysis', type=int, required=False, default=3000)
+    parser.add_argument('--use_raw', help='Use raw data (not normalized, but preprocessed) for downstream analysis', type=bool, required=False, default=False)
+    parser.add_argument('--n_jobs', help='Number of CPU cores for parallel execution', type=int, required=False, default=8)
 
     parser.add_argument('--spagft__method', help='Algorithm to be used after SpaGFT dim red', type=str, required=False, default='louvain', choices=['louvain','spectral'])
     parser.add_argument('--spagft__ratio_low_freq', help='ratio_low_freq', type=float, required=False, default=0.5)
@@ -48,6 +53,11 @@ if __name__ == '__main__':
     parser.add_argument('--spagft__quantile', help='quantile', type=float, required=False, default=0.85)
     parser.add_argument('--spagft__n_neighbors', help='n_neighbors', type=float, required=False, default=20)
     parser.add_argument('--spagft__n_clusters', help='n_clusters', type=float, required=False, default=12)
+
+    parser.add_argument('--hotspot__null_model', help='HotspotAlgo: Null model of cell gene expression', type=str, required=False, default='danb', choices=['danb','bernoulli', 'normal', 'none'])
+    parser.add_argument('--hotspot__n_neighbors', help='HotspotAlgo:Number of neighbors for KNN graph', type=int, required=False, default=30)
+    parser.add_argument('--hotspot__fdr_threshold', help='HotspotAlgo: FDR threshold for selection of genes with higher autocorrelation', type=float, required=False, default=0.05)
+    parser.add_argument('--hotspot__min_gene_threshold', help='HotspotAlgo: Minimum number of genes per module', type=int, required=False, default=10)
 
     args = parser.parse_args()
 
@@ -69,7 +79,7 @@ if __name__ == '__main__':
     if not scipy.sparse.issparse(adata.X):
         adata.X = scipy.sparse.csr_matrix(adata.X)
 
-    all_methods = {'scc':SccAlgo, 'spagft':SpagftAlgo, 'spatialde':SpatialdeAlgo}
+    all_methods = {'scc':SccAlgo, 'spagft':SpagftAlgo, 'spatialde':SpatialdeAlgo, 'hotspot':HotspotAlgo}
     if args.method == 'all':
         for method in all_methods:
             algo = all_methods[method](adata, **vars(args))
