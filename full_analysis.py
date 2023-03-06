@@ -40,9 +40,6 @@ if __name__ == '__main__':
     parser.add_argument('--n_marker_genes', help='Number of marker genes used for tissue domain identification by intersection. Consider all genes by default.', type=int, required=False, default=-1)
     parser.add_argument('-v', '--verbose', help='Show logging messages', action='count', default=0)
     parser.add_argument('--svg_only', help='Perform only identification of spatially variable genes', type=bool, default=True)
-    parser.add_argument('--use_hvgs', help='Use highly variable genes for downstream analysis', type=bool, required=False, default=True)
-    parser.add_argument('--n_hvgs', help='Number of highly variable genes used for downstream analysis', type=int, required=False, default=3000)
-    parser.add_argument('--use_raw', help='Use raw data (not normalized, but preprocessed) for downstream analysis', type=bool, required=False, default=False)
     parser.add_argument('--n_jobs', help='Number of CPU cores for parallel execution', type=int, required=False, default=8)
 
     parser.add_argument('--spagft__method', help='Algorithm to be used after SpaGFT dim red', type=str, required=False, default='louvain', choices=['louvain','spectral'])
@@ -54,6 +51,9 @@ if __name__ == '__main__':
     parser.add_argument('--spagft__n_neighbors', help='n_neighbors', type=float, required=False, default=20)
     parser.add_argument('--spagft__n_clusters', help='n_clusters', type=float, required=False, default=12)
 
+    parser.add_argument('--hotspot__use_full_gene_set', help='HotspotAlgo: True - use whole gene set; False - use only highly variable genes for downstream analysis', type=bool, required=False, default=False)
+    parser.add_argument('--hotspot__n_hvgs', help='HotspotAlgo: Number of highly variable genes used for downstream analysis', type=int, required=False, default=3000)
+    parser.add_argument('--hotspot__use_normalized_data', help='HotspotAlgo: True - use log-normalized data; False - use raw data (gene/cell filtered, but not log-normalized) for downstream analysis', type=bool, required=False, default=False)
     parser.add_argument('--hotspot__null_model', help='HotspotAlgo: Null model of cell gene expression', type=str, required=False, default='danb', choices=['danb','bernoulli', 'normal', 'none'])
     parser.add_argument('--hotspot__n_neighbors', help='HotspotAlgo:Number of neighbors for KNN graph', type=int, required=False, default=30)
     parser.add_argument('--hotspot__fdr_threshold', help='HotspotAlgo: FDR threshold for selection of genes with higher autocorrelation', type=float, required=False, default=0.05)

@@ -3,6 +3,7 @@ import copy
 
 import hotspot
 import pandas as pd
+import scanpy as sc
 
 from sklearn.cluster import spectral_clustering
 from core import ClusteringAlgorithm
@@ -11,28 +12,47 @@ from .utils import timeit
 class HotspotAlgo(ClusteringAlgorithm):
     def __init__(self, adata, **params):
         super().__init__(adata, **params)
-        self.filename = self.adata.uns['sample_name'] + f"_hotspot_hvg{self.use_hvgs}_hvgnt{self.n_hvgs}_ur{self.use_raw}_nm{self.hotspot__null_model}_nn{self.hotspot__n_neighbors}_fdrt{self.hotspot__fdr_threshold}__mgt{self.hotspot__min_gene_threshold}_nj{self.n_jobs}"
+        self.filename = self.adata.uns['sample_name'] + f"_hotspot_hvg{not self.hotspot__use_full_gene_set}_hvgnt{self.hotspot__n_hvgs}_ur{not self.hotspot__use_normalized_data}_nm{self.hotspot__null_model}_nn{self.hotspot__n_neighbors}_fdrt{self.hotspot__fdr_threshold}__mgt{self.hotspot__min_gene_threshold}_nj{self.n_jobs}"
         
         self.cluster_key = 'hotspot'
 
+    def preprocess(
+        self,
+        min_genes=200,
+        min_cells=3,
+        target_sum=1e4,
+        normalize=True,
+        use_hvgs = None,
+        n_hvgs = None,
+        use_raw = None
+        ):
+        self.adata.var_names_make_unique()
+        sc.pp.filter_cells(self.adata, min_genes)
+        sc.pp.filter_genes(self.adata, min_cells)
+        # save raw counts
+        if use_raw:
+            self.adata.raw = self.adata
+        if normalize:
+            sc.pp.normalize_total(self.adata, target_sum, inplace=True)
+        if "log1p" not in self.adata.uns_keys():
+            sc.pp.log1p(self.adata)
+        if use_hvgs:
+            # calculate highly variable genes
+            sc.pp.highly_variable_genes(self.adata, n_top_genes=n_hvgs)
+            # keep only HVGs, remove the rest of genes
+            # check use_raw label if the HVGs should have raw count or log-normalized
+            self.adata = self.adata.raw.to_adata()[:, self.adata.var.highly_variable] if use_raw else self.adata[:, self.adata.var.highly_variable]
+        logging.info(f'Finished preprocessing')
+
     @timeit
     def run(self):
-        # preprocess data, calculated highly varable genes if the flag is set
-        self.preprocess(normalize=False, use_hvgs=self.use_hvgs, n_hvgs=self.n_hvgs, use_raw=self.use_raw)
+        # preprocess data, extract highly varable genes if the flag is set
+        self.preprocess(use_hvgs=(not self.hotspot__use_full_gene_set), n_hvgs=self.hotspot__n_hvgs, use_raw=(not self.hotspot__use_normalized_data))
         
-        # # check for if raw data is provided (this is done during self.preprocess())
-        # if self.use_raw and not self.adata.raw:
-        #     raise Exception(f'self.adata.raw must be set if use_raw is True.')
-        
-        # copy wanted data
-        data = self.adata.raw.to_adata() if self.use_raw else self.adata
-        # extract highly variable genes if needed
-        data = data[:, self.adata.var.highly_variable] if self.use_hvgs else data
-
         # hotspot pipeline
         logging.info(r"Starting hotspot pipeline")
         # hotspot is initialized with cell-cell similarity defined through 'spatial' key
-        hs = hotspot.Hotspot(adata=data, layer_key=None, model=self.hotspot__null_model,
+        hs = hotspot.Hotspot(adata=self.adata, layer_key=None, model=self.hotspot__null_model,
                                 latent_obsm_key='spatial', umi_counts_obs_key='total_counts')           
         logging.info(r"Hotspot object created")
         
@@ -53,8 +73,8 @@ class HotspotAlgo(ClusteringAlgorithm):
         logging.info(f'Selected {len(hs_genes)} with FDR < {self.hotspot__fdr_threshold}')
 
         # save gene modules to adata.uns
-        self.adata.uns['svg'] = hs_genes.values
-        logging.info(r"Hotspot finished identifying spatially variable genes. Added results to adata.uns['svg']")
+        self.adata.uns['hotspot_svg'] = hs_genes.values
+        logging.info(r"Hotspot finished identifying spatially variable genes. Added results to adata.uns['hotspot_svg']")
 
         # Compute pair-wise local correlations between selected genes
         # The output is a genes x genes pandas DataFrame of Z-scores 
@@ -72,8 +92,8 @@ class HotspotAlgo(ClusteringAlgorithm):
         logging.info(f'Genes groupping into modules finished (min_gene_threshold={self.hotspot__min_gene_threshold}, fdr_threshold={self.hotspot__fdr_threshold}).')
         
         # save gene modules to adata.uns
-        self.adata.var['svg_modules'] = hs.modules
-        logging.info(r"Hotspot finished identifying spatially variable gene modules. Added results to adata.var['svg_modules']")
+        self.adata.var['hotspot_svg_modules'] = hs.modules
+        logging.info(r"Hotspot finished identifying spatially variable gene modules. Added results to adata.var['hotspot_svg_modules']")
 
         # spatial information on modules can be obtained through per-cell module score
         # This is useful for visualizing the general pattern of expression for genes in a module.
@@ -83,8 +103,8 @@ class HotspotAlgo(ClusteringAlgorithm):
             logging.error(r'Zero modules created. Please decrease hotspot__min_gene_threshold.')
 
         # adding module scores as embedding for X
-        self.adata.obsm['embedding'] = hs.module_scores.values
-        logging.info(r"Module scores saved in self.adata.obsm['embedding']")
+        self.adata.obsm['hotsot_embedding'] = hs.module_scores.values
+        logging.info(r"Module scores saved in self.adata.obsm['hotspot_embedding']")
 
         if self.svg_only:
             return
@@ -95,7 +115,7 @@ class HotspotAlgo(ClusteringAlgorithm):
         self.adata.write(f'{self.filename}.h5ad', compression="gzip")
         logging.info(f'Saved clustering result {self.filename}.h5ad')
 
-        pd.DataFrame(self.adata.uns['svg']).to_csv(f'{self.filename}_svg.csv', index=True)
-        self.adata.var['svg_modules'].to_csv(f'{self.filename}_svg_modules.csv', index=True)
+        pd.DataFrame(self.adata.uns['hotspot_svg']).to_csv(f'{self.filename}_svg.csv', index=True)
+        self.adata.var['hotspot_svg_modules'].to_csv(f'{self.filename}_svg_modules.csv', index=True)
 
 

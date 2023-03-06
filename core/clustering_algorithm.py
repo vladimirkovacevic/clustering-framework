@@ -31,10 +31,7 @@ class ClusteringAlgorithm(ABC):
         min_genes=200,
         min_cells=3,
         target_sum=1e4,
-        normalize=True,
-        use_hvgs = False,
-        n_hvgs = 3000,
-        use_raw = True
+        normalize=True
         ):
         self.adata.var_names_make_unique()
         sc.pp.filter_cells(self.adata, min_genes)
@@ -43,10 +40,8 @@ class ClusteringAlgorithm(ABC):
             sc.pp.normalize_total(self.adata, target_sum, inplace=True)
         if "log1p" not in self.adata.uns_keys():
             sc.pp.log1p(self.adata)
-        if use_hvgs:
-            sc.pp.highly_variable_genes(self.adata, n_top_genes=n_hvgs)
-        if use_raw:
-            self.adata.raw = self.adata
+        # sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5) TODO discuss if needed
+        self.adata.raw = self.adata
         # sc.pp.regress_out(adata, ['total_counts'])  TODO discuss if needed
         # sc.pp.scale(adata, max_value=10)  TODO discuss if needed
         logging.info(f'Finished preprocessing')
