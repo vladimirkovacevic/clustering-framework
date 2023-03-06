@@ -30,7 +30,7 @@ class ClusteringAlgorithm(ABC):
         self,
         min_genes=200,
         min_cells=3,
-        target_sum=1e4, 
+        target_sum=1e4,
         normalize=True
         ):
         self.adata.var_names_make_unique()
