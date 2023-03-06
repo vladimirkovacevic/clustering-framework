@@ -19,8 +19,8 @@ def RunAnalysis(algo):
         return
     if any(set(['celltype_pred', 'annotation']).intersection(set(algo.adata.obs_keys()))):
         algo.calculate_clustering_metrics()
-        # algo.plot_clustering_against_ground_truth()
-        algo.plot_tissue_domains_against_ground_truth()
+        algo.plot_clustering_against_ground_truth()
+        # algo.plot_tissue_domains_against_ground_truth()
     else:
         algo.plot_clustering(color=[algo.cluster_key], sample_name=f'{algo.filename}.png')
 

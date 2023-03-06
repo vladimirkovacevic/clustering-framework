@@ -18,7 +18,7 @@ class SpatialdeAlgo(ClusteringAlgorithm):
         df = self.adata.to_df()
         coords = pd.DataFrame(index=df.index, data=self.adata.obsm['spatial'], columns=['x','y'])
         results = SpatialDE.run(coords, df)
-        self.adata.uns['svg'] = results
+        self.adata.uns['svg_' + self.cluster_key] = results
 
         if self.svg_only:
             logging.info(r"SpatialDE finished identifying spatially variable genes. Added results to adata.uns['svg']")
@@ -26,6 +26,7 @@ class SpatialdeAlgo(ClusteringAlgorithm):
         
     def save_results(self):
         self.adata.write(f'{self.filename}.h5ad', compression="gzip")
+        self.adata.uns['svg_' + self.cluster_key].to_csv(f'{self.filename}_svgs.csv')
         logging.info(f'Saved clustering result {self.filename}.h5ad')
 
 
