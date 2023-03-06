@@ -83,10 +83,11 @@ class ClusteringAlgorithm(ABC):
         self,
         sample_name="unknown",
         color=['clusters'],
+        show=False,
         palette=None
         ):
         figure, ax = plt.subplots(nrows=1, ncols=1)
-        sc.pl.spatial(self.adata, color=color, palette=palette, spot_size=self.spot_size, ax=ax, show=False)
+        sc.pl.spatial(self.adata, color=color, palette=palette, spot_size=self.spot_size, ax=ax, show=show)
         figure.savefig(sample_name, dpi=200, bbox_inches='tight')
         plt.close()
 

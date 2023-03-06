@@ -3,7 +3,6 @@ import logging
 import SpatialDE
 import pandas as pd
 
-from sklearn.cluster import spectral_clustering
 from core import ClusteringAlgorithm
 from .utils import timeit
 
