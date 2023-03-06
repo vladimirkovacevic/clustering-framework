@@ -1,17 +1,20 @@
 import argparse as ap
 import logging
 import os
+import sys
 
 import scipy
 import scanpy as sc
 import stereo as st
-
-from core import SpagftAlgo
 from core import SccAlgo
 from core import SpatialdeAlgo
 from core import HotspotAlgo
+from core import SpagftAlgo
+from core import SpagcnAlgo
+
 
 logging.basicConfig(level=logging.INFO)
+
 
 def RunAnalysis(algo):
     algo.run()
@@ -29,9 +32,9 @@ if __name__ == '__main__':
 
     sc.settings.verbosity = 3      
     sc.settings.set_figure_params(dpi=300, facecolor='white')
-    parser = ap.ArgumentParser(description='A script that performs clustering with tissue modules identified using SpaGFT')
+    parser = ap.ArgumentParser(description='A script that performs SVG and tissue domain identification.')
     parser.add_argument('-f', '--file', help='File that contain data to be clustered', type=str, required=True)
-    parser.add_argument('-m', '--method', help='A type of tissue clustering method to perform', type=str, required=False, choices=['spagft', 'spatialde', 'scc', 'hotspot', 'all'], default='spagft')
+    parser.add_argument('-m', '--method', help='A type of tissue clustering method to perform', type=str, required=False, choices=['spagft', 'spatialde', 'scc', 'spagcn', 'hotspot', 'all'], default='spagft')
     parser.add_argument('-o', '--out_path', help='Absolute path to store outputs', type=str, required=True)
     parser.add_argument('-r', '--resolution', help='All: Resolution of the clustering algorithm', type=float, required=False, default=2)
     parser.add_argument('--n_neigh_gene', help='SCC: Number of neighbors using pca of gene expression', type=float, required=False, default=30)
@@ -60,6 +63,9 @@ if __name__ == '__main__':
     parser.add_argument('--hotspot__fdr_threshold', help='HotspotAlgo: FDR threshold for selection of genes with higher autocorrelation', type=float, required=False, default=0.05)
     parser.add_argument('--hotspot__min_gene_threshold', help='HotspotAlgo: Minimum number of genes per module', type=int, required=False, default=10)
 
+    parser.add_argument('--spagcn__refine', help='refine clustering', type=bool, required=False)
+    parser.add_argument('--spagcn__skip_domain_calculation', help='Skip domain calculation', type=bool, required=False)
+    parser.add_argument('--spagcn__max_num_clusters', help='Max number of clusters', type=int, required=False, default=15)
     args = parser.parse_args()
 
     if args.verbose == 0:
@@ -80,7 +86,7 @@ if __name__ == '__main__':
     if not scipy.sparse.issparse(adata.X):
         adata.X = scipy.sparse.csr_matrix(adata.X)
 
-    all_methods = {'scc':SccAlgo, 'spagft':SpagftAlgo, 'spatialde':SpatialdeAlgo, 'hotspot':HotspotAlgo}
+    all_methods = {'scc':SccAlgo, 'spagft':SpagftAlgo, 'spatialde':SpatialdeAlgo, 'hotspot':HotspotAlgo, 'spagcn': SpagcnAlgo}
     if args.method == 'all':
         for method in all_methods:
             algo = all_methods[method](adata, **vars(args))
