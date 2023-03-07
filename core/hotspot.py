@@ -12,7 +12,7 @@ from .utils import timeit
 class HotspotAlgo(ClusteringAlgorithm):
     def __init__(self, adata, **params):
         super().__init__(adata, **params)
-        self.filename = self.adata.uns['sample_name'] + f"_hotspot_hvg{not self.hotspot__use_full_gene_set}_hvgnt{self.hotspot__n_hvgs}_ur{not self.hotspot__use_normalized_data}_nm{self.hotspot__null_model}_nn{self.hotspot__n_neighbors}_fdrt{self.hotspot__fdr_threshold}__mgt{self.hotspot__min_gene_threshold}_nj{self.n_jobs}"
+        self.filename = self.adata.uns['sample_name'] + f"_hotspot_hvg{not self.hotspot__use_full_gene_set}_hvgnt{self.hotspot__n_hvgs}_ur{not self.hotspot__use_normalized_data}_nm{self.hotspot__null_model}_nn{self.hotspot__n_neighbors}_core{self.hotspot__core_only}_fdrt{self.hotspot__fdr_threshold}__mgt{self.hotspot__min_gene_threshold}_nj{self.n_jobs}"
         
         self.cluster_key = 'hotspot'
 
@@ -72,9 +72,10 @@ class HotspotAlgo(ClusteringAlgorithm):
         hs_genes = hs.results.loc[hs.results.FDR < self.hotspot__fdr_threshold].index
         logging.info(f'Selected {len(hs_genes)} with FDR < {self.hotspot__fdr_threshold}')
 
-        # save gene modules to adata.uns
+        # save spatially variable genes and their adjusted p_values to adata.uns
         self.adata.uns['hotspot_svg'] = hs_genes.values
-        logging.info(r"Hotspot finished identifying spatially variable genes. Added results to adata.uns['hotspot_svg']")
+        self.adata.uns['hotspot_pval_adj'] = hs.results.loc[hs.results.FDR < self.hotspot__fdr_threshold].FDR.values
+        logging.info(r"Hotspot finished identifying spatially variable genes. Added results to adata.uns['hotspot_svg'] and adata.uns['hotspot_pval_adj']")
 
         # Compute pair-wise local correlations between selected genes
         # The output is a genes x genes pandas DataFrame of Z-scores 
@@ -88,10 +89,10 @@ class HotspotAlgo(ClusteringAlgorithm):
         # Unassigned genes are indicated with a module number of -1. 
         # The output is also stored in hs.modules
         _ = hs.create_modules(min_gene_threshold=self.hotspot__min_gene_threshold,
-                                core_only=True, fdr_threshold=self.hotspot__fdr_threshold)
+                                core_only=self.hotspot__core_only, fdr_threshold=self.hotspot__fdr_threshold)
         logging.info(f'Genes groupping into modules finished (min_gene_threshold={self.hotspot__min_gene_threshold}, fdr_threshold={self.hotspot__fdr_threshold}).')
         
-        # save gene modules to adata.uns
+        # save gene modules to adata.var
         self.adata.var['hotspot_svg_modules'] = hs.modules
         logging.info(r"Hotspot finished identifying spatially variable gene modules. Added results to adata.var['hotspot_svg_modules']")
 
@@ -103,7 +104,7 @@ class HotspotAlgo(ClusteringAlgorithm):
             logging.error(r'Zero modules created. Please decrease hotspot__min_gene_threshold.')
 
         # adding module scores as embedding for X
-        self.adata.obsm['hotsot_embedding'] = hs.module_scores.values
+        self.adata.obsm['hotspot_embedding'] = hs.module_scores.values
         logging.info(r"Module scores saved in self.adata.obsm['hotspot_embedding']")
 
         if self.svg_only:
@@ -115,7 +116,12 @@ class HotspotAlgo(ClusteringAlgorithm):
         self.adata.write(f'{self.filename}.h5ad', compression="gzip")
         logging.info(f'Saved clustering result {self.filename}.h5ad')
 
-        pd.DataFrame(self.adata.uns['hotspot_svg']).to_csv(f'{self.filename}_svg.csv', index=True)
-        self.adata.var['hotspot_svg_modules'].to_csv(f'{self.filename}_svg_modules.csv', index=True)
+        # save .csv file for SVGs with gene names, pval adjusted and gene modules(domains)
+        df_svg = pd.DataFrame(self.adata.uns['hotspot_svg'], columns=['genes'])
+        df_svg['pval_adj'] = self.adata.uns['hotspot_pval_adj']
+        svg_modules = self.adata.var['hotspot_svg_modules'].reset_index()
+        svg_modules.columns=['genes', 'domain']
+        df_svg = df_svg.merge(svg_modules, left_on='genes', right_on='genes')
+        df_svg.to_csv(f'{self.filename}_svg.csv', index=False)
 
 

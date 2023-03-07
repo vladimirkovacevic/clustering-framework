@@ -55,7 +55,8 @@ if __name__ == '__main__':
     parser.add_argument('--hotspot__n_hvgs', help='HotspotAlgo: Number of highly variable genes used for downstream analysis', type=int, required=False, default=3000)
     parser.add_argument('--hotspot__use_normalized_data', help='HotspotAlgo: True - use log-normalized data; False - use raw data (gene/cell filtered, but not log-normalized) for downstream analysis', type=bool, required=False, default=False)
     parser.add_argument('--hotspot__null_model', help='HotspotAlgo: Null model of cell gene expression', type=str, required=False, default='danb', choices=['danb','bernoulli', 'normal', 'none'])
-    parser.add_argument('--hotspot__n_neighbors', help='HotspotAlgo:Number of neighbors for KNN graph', type=int, required=False, default=30)
+    parser.add_argument('--hotspot__n_neighbors', help='HotspotAlgo: Number of neighbors for KNN graph', type=int, required=False, default=30)
+    parser.add_argument('--hotspot__core_only', help='HotspotAlgo: True: Ambiguous genes are not assined to modules (labeled -1); False: all genes are assigned to modules', type=bool, required=False, default=False)
     parser.add_argument('--hotspot__fdr_threshold', help='HotspotAlgo: FDR threshold for selection of genes with higher autocorrelation', type=float, required=False, default=0.05)
     parser.add_argument('--hotspot__min_gene_threshold', help='HotspotAlgo: Minimum number of genes per module', type=int, required=False, default=10)
 
