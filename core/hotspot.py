@@ -72,10 +72,10 @@ class HotspotAlgo(ClusteringAlgorithm):
         hs_genes = hs.results.loc[hs.results.FDR < self.hotspot__fdr_threshold].index
         logging.info(f'Selected {len(hs_genes)} with FDR < {self.hotspot__fdr_threshold}')
 
-        # save spatially variable genes and their p_values to adata.uns
+        # save spatially variable genes and their adjusted p_values to adata.uns
         self.adata.uns['hotspot_svg'] = hs_genes.values
-        self.adata.uns['hotspot_pval'] = hs.results.loc[hs.results.FDR < self.hotspot__fdr_threshold].Pval.values
-        logging.info(r"Hotspot finished identifying spatially variable genes. Added results to adata.uns['hotspot_svg'] and adata.uns['hotspot_pval']")
+        self.adata.uns['hotspot_pval_adj'] = hs.results.loc[hs.results.FDR < self.hotspot__fdr_threshold].FDR.values
+        logging.info(r"Hotspot finished identifying spatially variable genes. Added results to adata.uns['hotspot_svg'] and adata.uns['hotspot_pval_adj']")
 
         # Compute pair-wise local correlations between selected genes
         # The output is a genes x genes pandas DataFrame of Z-scores 
@@ -118,7 +118,7 @@ class HotspotAlgo(ClusteringAlgorithm):
 
         # save .csv file for SVGs with gene names, pval adjusted and gene modules(domains)
         df_svg = pd.DataFrame(self.adata.uns['hotspot_svg'], columns=['genes'])
-        df_svg['pval_adj'] = self.adata.uns['hotspot_pval']
+        df_svg['pval_adj'] = self.adata.uns['hotspot_pval_adj']
         svg_modules = self.adata.var['hotspot_svg_modules'].reset_index()
         svg_modules.columns=['genes', 'domains']
         df_svg = df_svg.merge(svg_modules, left_on='genes', right_on='genes')
