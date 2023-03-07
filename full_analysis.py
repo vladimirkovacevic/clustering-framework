@@ -1,7 +1,6 @@
 import argparse as ap
 import logging
 import os
-import sys
 
 import scipy
 import scanpy as sc
