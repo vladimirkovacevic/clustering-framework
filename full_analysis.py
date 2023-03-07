@@ -20,8 +20,8 @@ def RunAnalysis(algo):
         return
     if any(set(['celltype_pred', 'annotation']).intersection(set(algo.adata.obs_keys()))):
         algo.calculate_clustering_metrics()
-        # algo.plot_clustering_against_ground_truth()
-        algo.plot_tissue_domains_against_ground_truth()
+        algo.plot_clustering_against_ground_truth()
+        # algo.plot_tissue_domains_against_ground_truth()
     else:
         algo.plot_clustering(color=[algo.cluster_key], sample_name=f'{algo.filename}.png')
 
@@ -39,7 +39,7 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--spot_size', help='Size of the spot on plot', type=float, required=False, default=30)
     parser.add_argument('--n_marker_genes', help='Number of marker genes used for tissue domain identification by intersection. Consider all genes by default.', type=int, required=False, default=-1)
     parser.add_argument('-v', '--verbose', help='Show logging messages', action='count', default=0)
-    parser.add_argument('--svg_only', help='Perform only identification of spatially variable genes', type=bool, default=True)
+    parser.add_argument('--svg_only', help='Perform only identification of spatially variable genes', action='store_true')
     parser.add_argument('--n_jobs', help='Number of CPU cores for parallel execution', type=int, required=False, default=8)
 
     parser.add_argument('--spagft__method', help='Algorithm to be used after SpaGFT dim red', type=str, required=False, default='louvain', choices=['louvain','spectral'])
