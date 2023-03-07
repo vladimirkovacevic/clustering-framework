@@ -12,7 +12,7 @@ import scipy
 
 from sklearn.cluster import spectral_clustering
 from core import ClusteringAlgorithm
-from .utils import timeit
+from core import timeit
 
 class SpagftAlgo(ClusteringAlgorithm):
     def __init__(self, adata, **params):
