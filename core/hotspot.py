@@ -12,7 +12,7 @@ from .utils import timeit
 class HotspotAlgo(ClusteringAlgorithm):
     def __init__(self, adata, **params):
         super().__init__(adata, **params)
-        self.filename = self.adata.uns['sample_name'] + f"_hotspot_hvg{not self.hotspot__use_full_gene_set}_hvgnt{self.hotspot__n_hvgs}_ur{not self.hotspot__use_normalized_data}_nm{self.hotspot__null_model}_nn{self.hotspot__n_neighbors}_fdrt{self.hotspot__fdr_threshold}__mgt{self.hotspot__min_gene_threshold}_nj{self.n_jobs}"
+        self.filename = self.adata.uns['sample_name'] + f"_hotspot_hvg{not self.hotspot__use_full_gene_set}_hvgnt{self.hotspot__n_hvgs}_ur{not self.hotspot__use_normalized_data}_nm{self.hotspot__null_model}_nn{self.hotspot__n_neighbors}_core{self.hotspot__core_only}_fdrt{self.hotspot__fdr_threshold}__mgt{self.hotspot__min_gene_threshold}_nj{self.n_jobs}"
         
         self.cluster_key = 'hotspot'
 
@@ -89,7 +89,7 @@ class HotspotAlgo(ClusteringAlgorithm):
         # Unassigned genes are indicated with a module number of -1. 
         # The output is also stored in hs.modules
         _ = hs.create_modules(min_gene_threshold=self.hotspot__min_gene_threshold,
-                                core_only=True, fdr_threshold=self.hotspot__fdr_threshold)
+                                core_only=self.hotspot__core_only, fdr_threshold=self.hotspot__fdr_threshold)
         logging.info(f'Genes groupping into modules finished (min_gene_threshold={self.hotspot__min_gene_threshold}, fdr_threshold={self.hotspot__fdr_threshold}).')
         
         # save gene modules to adata.var
@@ -120,7 +120,7 @@ class HotspotAlgo(ClusteringAlgorithm):
         df_svg = pd.DataFrame(self.adata.uns['hotspot_svg'], columns=['genes'])
         df_svg['pval_adj'] = self.adata.uns['hotspot_pval_adj']
         svg_modules = self.adata.var['hotspot_svg_modules'].reset_index()
-        svg_modules.columns=['genes', 'domains']
+        svg_modules.columns=['genes', 'domain']
         df_svg = df_svg.merge(svg_modules, left_on='genes', right_on='genes')
         df_svg.to_csv(f'{self.filename}_svg.csv', index=False)
 
