@@ -1,13 +1,17 @@
-import sys
-import os,csv,re
 import argparse
+import csv
+import os
+import re
+import sys
 import time
+import logging
 
-import pandas as pd
 import numpy as np
-from scipy.sparse import issparse
+import pandas as pd
 import scanpy as sc
 import SpaGCN as spg
+from scipy.sparse import issparse
+
 from core import ClusteringAlgorithm
 
 
@@ -19,38 +23,38 @@ class SpagcnAlgo(ClusteringAlgorithm):
         self.cluster_key = 'spagcn'
 
     def run(self):
-        self.preprocess()
+        # self.preprocess()
         spatial_key = 'spatial' if 'spatial' in self.adata.obsm_keys() else ['x', 'y'] if set(['x', 'y']) <= set(self.adata.obs_keys()) else None
 
         if not spatial_key:
             raise KeyError("Spatial info is not avaliable in adata.obsm_keys == 'spatial' or adata.obs_keys ['x', 'y']")
         start = time.perf_counter()
 
-        if not self.svg_only:
+        if not self.spagcn__skip_domain_calculation:
             #Set coordinates
-            self.adata.obs["x_array"]=self.adata.obsm['spatial'][:, 0]
-            self.adata.obs["y_array"]=self.adata.obsm['spatial'][:, 1]
-            self.adata.obs["x_pixel"]=self.adata.obsm['spatial'][:, 0]
-            self.adata.obs["y_pixel"]=self.adata.obsm['spatial'][:, 1]
+            self.adata.obs["x_array"]=self.adata.obsm[spatial_key][:, 0]
+            self.adata.obs["y_array"]=self.adata.obsm[spatial_key][:, 1]
+            self.adata.obs["x_pixel"]=self.adata.obsm[spatial_key][:, 0]
+            self.adata.obs["y_pixel"]=self.adata.obsm[spatial_key][:, 1]
 
-            x_array=adata.obs["x_array"].tolist()
-            y_array=adata.obs["y_array"].tolist()
-            x_pixel=adata.obs["x_pixel"].tolist()
-            y_pixel=adata.obs["y_pixel"].tolist()
+            x_array=self.adata.obs["x_array"].tolist()
+            y_array=self.adata.obs["y_array"].tolist()
+            x_pixel=self.adata.obs["x_pixel"].tolist()
+            y_pixel=self.adata.obs["y_pixel"].tolist()
             #Run SpaGCN
-            adata.obs[self.cluster_key]= spg.detect_spatial_domains_ez_mode(adata, None, x_array, y_array, x_pixel, y_pixel, n_clusters=args.max_num_clusters, histology=False, s=1, b=49, p=0.5, r_seed=100, t_seed=100, n_seed=100)
-            adata.obs[self.cluster_key]=adata.obs[self.cluster_key].astype('category')
+            self.adata.obs[self.cluster_key]= spg.detect_spatial_domains_ez_mode(self.adata, None, x_array, y_array, x_pixel, y_pixel, n_clusters=self.spagcn__max_num_clusters, histology=False, s=1, b=49, p=0.5, r_seed=100, t_seed=100, n_seed=100)
+            
             #Refine domains (optional)
-            if self.spagcn___refine:
-                self.adata.obs[self.cluster_key]=spg.spatial_domains_refinement_ez_mode(sample_id=adata.obs.index.tolist(), pred=adata.obs["pred"].tolist(), x_array=x_array, y_array=y_array, shape="hexagon")
-                self.adata.obs[self.cluster_key]=self.adata.obs["refined_pred"].astype('category')
+            if self.spagcn__refine:
+                self.adata.obs[self.cluster_key]=spg.spatial_domains_refinement_ez_mode(sample_id=self.adata.obs.index.tolist(), pred=adata.obs[self.cluster_key].tolist(), x_array=x_array, y_array=y_array, shape="hexagon")
+            self.adata.obs[self.cluster_key]=self.adata.obs[self.cluster_key].astype('category')
             end_domaining = time.perf_counter()
             logging.info(f'SpaGCN domain calculation took: {end_domaining - start} sec.')
 
         domains = set(self.adata.obs[self.cluster_key].values)
         logging.info(f'Found domains: {domains}')
         # Find SVGs
-        self.adata.X=(adata.X.A if issparse(adata.X) else adata.X)
+        self.adata.X=(self.adata.X.A if issparse(self.adata.X) else self.adata.X)
 
         #Set filtering criterials
         min_in_group_fraction=0.8
@@ -59,7 +63,7 @@ class SpagcnAlgo(ClusteringAlgorithm):
         all_filtered_info = pd.DataFrame()
         for target in domains:
             logging.info(f'Processing domain {target}...')
-            filtered_info=spg.detect_SVGs_ez_mode(self.adata, target=target, x_name="x_array", y_name="y_array", domain_name="pred", min_in_group_fraction=min_in_group_fraction, min_in_out_group_ratio=min_in_out_group_ratio, min_fold_change=min_fold_change)
+            filtered_info=spg.detect_SVGs_ez_mode(self.adata, target=target, x_name="x_array", y_name="y_array", domain_name=self.cluster_key, min_in_group_fraction=min_in_group_fraction, min_in_out_group_ratio=min_in_out_group_ratio, min_fold_change=min_fold_change)
             if len(filtered_info) > 0:
                 # If zero genes found for the domain
                 filtered_info.loc[:, 'domain'] = int(target)
