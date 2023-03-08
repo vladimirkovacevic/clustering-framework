@@ -26,7 +26,11 @@ class SpatialdeAlgo(ClusteringAlgorithm):
         
     def save_results(self):
         self.adata.write(f'{self.filename}.h5ad', compression="gzip")
-        self.adata.uns['svg_' + self.cluster_key].to_csv(f'{self.filename}_svgs.csv')
-        logging.info(f'Saved clustering result {self.filename}.h5ad')
+        df = self.adata.uns['svg_' + self.cluster_key]
+        df = df[df['qval'] < 0.05]
+        df = df.assign(pvals_adj=df.qval)
+        df = df.assign(genes=df.g)
+        df.to_csv(f'{self.filename}_svgs.csv')
+        logging.info(f'Saved result {self.filename}.h5ad')
 
 
