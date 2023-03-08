@@ -10,6 +10,7 @@ from core import SpatialdeAlgo
 from core import HotspotAlgo
 from core import SpagftAlgo
 from core import SpagcnAlgo
+from core import StamarkerAlgo
 
 
 logging.basicConfig(level=logging.INFO)
@@ -33,7 +34,7 @@ if __name__ == '__main__':
     sc.settings.set_figure_params(dpi=300, facecolor='white')
     parser = ap.ArgumentParser(description='A script that performs SVG and tissue domain identification.')
     parser.add_argument('-f', '--file', help='File that contain data to be clustered', type=str, required=True)
-    parser.add_argument('-m', '--method', help='A type of tissue clustering method to perform', type=str, required=False, choices=['spagft', 'spatialde', 'scc', 'spagcn', 'hotspot', 'all'], default='spagft')
+    parser.add_argument('-m', '--method', help='A type of tissue clustering method to perform', type=str, required=False, choices=['spagft', 'spatialde', 'scc', 'spagcn', 'hotspot', 'stamarker', 'all'], default='spagft')
     parser.add_argument('-o', '--out_path', help='Absolute path to store outputs', type=str, required=True)
     parser.add_argument('-r', '--resolution', help='All: Resolution of the clustering algorithm', type=float, required=False, default=2)
     parser.add_argument('--n_neigh_gene', help='SCC: Number of neighbors using pca of gene expression', type=float, required=False, default=30)
@@ -42,6 +43,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_marker_genes', help='Number of marker genes used for tissue domain identification by intersection. Consider all genes by default.', type=int, required=False, default=-1)
     parser.add_argument('-v', '--verbose', help='Show logging messages', action='count', default=0)
     parser.add_argument('--n_jobs', help='Number of CPU cores for parallel execution', type=int, required=False, default=8)
+
     parser.add_argument('--svg_only', help='Perform only identification of spatially variable genes', type=bool, action='store_true')
 
     parser.add_argument('--spagft__method', help='Algorithm to be used after SpaGFT dim red', type=str, required=False, default='louvain', choices=['louvain','spectral'])
@@ -65,6 +67,20 @@ if __name__ == '__main__':
     parser.add_argument('--spagcn__refine', help='refine clustering', type=bool, required=False)
     parser.add_argument('--spagcn__skip_domain_calculation', help='Skip domain calculation', type=bool, required=False)
     parser.add_argument('--spagcn__max_num_clusters', help='Max number of clusters', type=int, required=False, default=15)
+
+    
+    parser.add_argument('--stamarker__min_cells', help='Preprocessing - minimum number of cells in which gene express', type=int, required=False, default=50)
+    parser.add_argument('--stamarker__min_counts', help='Preprocessing - minimum number of counts in cell', type=int, required=False, default=None)
+    parser.add_argument('--stamarker__n_top_genes', help='Preprocessing - number of HVGs', type=int, required=False, default=3000)
+    parser.add_argument('--stamarker__radial_cutoff', help='Preprocessing - radius cutoff for spatial neighbor network', type=float, required=False, default=50.0)
+    parser.add_argument('--stamarker__n_auto_enc', help='StamarkerAlgo: Number of auto-encoders', type=int, required=False, default=20)
+    parser.add_argument('--stamarker__clustering_method', help='StamarkerAlgo: clustering method',type=str, required=False, default='louvain', choices=['louvain','mclust'])
+    parser.add_argument('--stamarker__n_clusters', help='StamarkerAlgo: wanted number of cluster (required for mclust and consensus clustering)', type=int, required=False, default=5)
+    parser.add_argument('--stamarker__n_top_genes', help='StamarkerAlgo:  - number of HVGs', type=int, required=False, default=3000)
+
+{self.stamarker__radial_cutoff}_nae{self.stamarker__n_auto_enc}_clm{self.stamarker__clustering_method}_nclss{self.stamarker__n_clusters}_r{self.resolution}_al{self.stamarker__alpha}
+
+
     args = parser.parse_args()
 
     if args.verbose == 0:
@@ -85,7 +101,7 @@ if __name__ == '__main__':
     if not scipy.sparse.issparse(adata.X):
         adata.X = scipy.sparse.csr_matrix(adata.X)
 
-    all_methods = {'scc':SccAlgo, 'spagft':SpagftAlgo, 'spatialde':SpatialdeAlgo, 'hotspot':HotspotAlgo, 'spagcn': SpagcnAlgo}
+    all_methods = {'scc':SccAlgo, 'spagft':SpagftAlgo, 'spatialde':SpatialdeAlgo, 'hotspot':HotspotAlgo, 'spagcn': SpagcnAlgo, 'stamarker':StamarkerAlgo}
     if args.method == 'all':
         for method in all_methods:
             algo = all_methods[method](adata, **vars(args))
