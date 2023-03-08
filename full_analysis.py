@@ -6,10 +6,10 @@ import scipy
 import scanpy as sc
 import stereo as st
 from core import SccAlgo
-from core import SpatialdeAlgo
+# from core import SpatialdeAlgo
 from core import HotspotAlgo
 from core import SpagftAlgo
-from core import SpagcnAlgo
+# from core import SpagcnAlgo
 from core import StamarkerAlgo
 
 
@@ -76,10 +76,7 @@ if __name__ == '__main__':
     parser.add_argument('--stamarker__n_auto_enc', help='StamarkerAlgo: Number of auto-encoders', type=int, required=False, default=20)
     parser.add_argument('--stamarker__clustering_method', help='StamarkerAlgo: clustering method',type=str, required=False, default='louvain', choices=['louvain','mclust'])
     parser.add_argument('--stamarker__n_clusters', help='StamarkerAlgo: wanted number of cluster (required for mclust and consensus clustering)', type=int, required=False, default=5)
-    parser.add_argument('--stamarker__n_top_genes', help='StamarkerAlgo:  - number of HVGs', type=int, required=False, default=3000)
-
-{self.stamarker__radial_cutoff}_nae{self.stamarker__n_auto_enc}_clm{self.stamarker__clustering_method}_nclss{self.stamarker__n_clusters}_r{self.resolution}_al{self.stamarker__alpha}
-
+    parser.add_argument('--stamarker__alpha', help='StamarkerAlgo: number of sigmas for SVG threshold', type=int, required=False, default=2)
 
     args = parser.parse_args()
 
