@@ -27,6 +27,8 @@ class HotspotAlgo(ClusteringAlgorithm):
         use_raw = None
         ):
         self.adata.var_names_make_unique()
+        if 'total_counts' not in self.adata.obs.keys():
+            sc.pp.calculate_qc_metrics(self.adata, percent_top=None, log1p=False, inplace=True)
         sc.pp.filter_cells(self.adata, min_genes)
         sc.pp.filter_genes(self.adata, min_cells)
         # save raw counts
@@ -34,7 +36,12 @@ class HotspotAlgo(ClusteringAlgorithm):
             self.adata.raw = self.adata
         if normalize:
             sc.pp.normalize_total(self.adata, target_sum, inplace=True)
-        if "log1p" not in self.adata.uns_keys():
+        if "log1p" in self.adata.uns_keys():
+            # error in Mouse brain data requires this double check
+            if 'base' not in self.adata.uns['log1p'].keys():
+                # self.adata.uns['log1p']['base'] = None
+                sc.pp.log1p(self.adata)
+        else:
             sc.pp.log1p(self.adata)
         if use_hvgs:
             # calculate highly variable genes
