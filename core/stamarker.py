@@ -1,7 +1,12 @@
 import logging
 import copy
+import sys
 
-import stamarker
+sys.path.append('/home/ubuntu/clustering-framework/stamarker/')
+from STAMarker.stamarker import pipeline, dataset, utils
+# import dataset
+# import utils
+
 import pandas as pd
 import upsetplot
 
@@ -12,24 +17,24 @@ from .utils import timeit
 class StamarkerAlgo(ClusteringAlgorithm):
     def __init__(self, adata, **params):
         super().__init__(adata, **params)
-        self.filename = self.adata.uns['sample_name'] + f"_stamarker_nhvgs{self.n_top_genes}_mincl{self.min_cells}_mct{self.min_counts}_rdcof{self.stamarker__radial_cutoff}_nae{self.stamarker__n_auto_enc}_clm{self.stamarker__clustering_method}_nclss{self.stamarker__n_clusters}_r{self.resolution}_al{self.stamarker__alpha}"
+        self.filename = self.adata.uns['sample_name'] + f"_stamarker_nhvgs{self.stamarker__n_top_genes}_mincl{self.stamarker__min_cells}_mct{self.stamarker__min_counts}_rdcof{self.stamarker__radial_cutoff}_nae{self.stamarker__n_auto_enc}_clm{self.stamarker__clustering_method}_nclss{self.stamarker__n_clusters}_r{self.resolution}_al{self.stamarker__alpha}"
 
         self.cluster_key = 'stamarker'
 
     @timeit
     def run(self):
         # create STAMarker data_module from adata
-        data_module = stamarker.pipeline.make_spatial_data(self.adata)
+        data_module = pipeline.make_spatial_data(self.adata)
         # preprocess data, filter genes and cells,
         # calculate highly variable genes, and normalize
         # 'seurat_v3' is default flavour for HVGs
         # target_sum =1e4 by default for normalization and log1p
-        data_module.prepare_data(n_top_genes=self.n_top_genes, rad_cutoff = self.stamarker__radial_cutoff, show_net_stats=False, min_cells=self.min_cells, min_counts=self.min_counts)
+        data_module.prepare_data(n_top_genes=self.stamarker__n_top_genes, rad_cutoff = self.stamarker__radial_cutoff, show_net_stats=False, min_cells=self.stamarker__min_cells, min_counts=self.stamarker__min_counts)
         
         # read model and trainer parameters
         config = dict()
-        config.update(stamarker.utils.parse_args("_params/model.yaml"))
-        config.update(stamarker.utils.parse_args("_params/trainer.yaml"))
+        config.update(utils.parse_args("_params/model.yaml"))
+        config.update(utils.parse_args("_params/trainer.yaml"))
         # update parameters if GPU is not available
         if not torch.cuda.is_available():
             config["stagate_trainer"]["gpus"] = 0
@@ -40,11 +45,11 @@ class StamarkerAlgo(ClusteringAlgorithm):
         # stamarker pipeline
         logging.info(r"Starting STAMarker pipeline")
         # initialize the `STAMarker` object
-        stamarker = stamarker.STAMarker(n=self.stamarker__n_auto_enc,save_dir=self.adata.uns['algo_params']['out_path'], config=config, logging_level=logging.INFO)        
+        stm = pipeline.STAMarker(n=self.stamarker__n_auto_enc,save_dir=self.adata.uns['algo_params']['out_path'], config=config, logging_level=logging.INFO)        
         logging.info(r"STAMarker object created")
 
         # Train autoencoders
-        stamarker.train_auto_encoders(data_module=data_module)
+        stm.train_auto_encoders(data_module=data_module)
         logging.info(f'{self.stamarker__n_auto_enc} auto-encoders finished training')
 
         # Perform Louvain or mclust clustering for each embedding
@@ -52,29 +57,29 @@ class StamarkerAlgo(ClusteringAlgorithm):
         # For Louvain cluster_params is resolution
         # For mclust cluster_params is number of clusters
         if self.stamarker__clustering_method == "louvain":
-            stamarker.clustering(data_module=data_module, cluster_method="louvain", cluster_params=self.resolution)
+            stm.clustering(data_module=data_module, cluster_method="louvain", cluster_params=self.resolution)
         elif self.stamarker__clustering_method == "mclust":
-            stamarker.clustering(data_module=data_module, cluster_method="mclust", cluster_params=self.stamarker__n_clusters)
+            stm.clustering(data_module=data_module, cluster_method="mclust", cluster_params=self.stamarker__n_clusters)
         logging.info(f'Clustering using {self.stamarker__clustering_method} method done')
         
         # Consensus clustering
         # file with labels info is hardcoded
-        stamarker.consensus_clustering(n_clusters=self.stamarker__n_clusters, name="cluster_labels.npy")
+        stm.consensus_clustering(n_clusters=self.stamarker__n_clusters, name="cluster_labels.npy")
         consensus_labels = np.load(stamarker.save_dir + "/consensus_labels.npy")
         self.adata.obs["Consensus clustering"] = consensus_labels.astype(str)
         logging.info(f'Consensus clustering for {self._stamarker__n_clusters} clusters created {consensus_labels.size} clusters')
 
         # Train MLPs
         # file with labels info is hardcoded
-        stamarker.train_classifiers(data_module=data_module, n_clusters=self.stamarker__n_clusters, name="cluster_labels.npy")
+        stm.train_classifiers(data_module=data_module, n_clusters=self.stamarker__n_clusters, name="cluster_labels.npy")
         
         # computer smaps - SVGs
-        smap = stamarker.compute_smaps(data_module=data_module, return_recon=True, normalize=True)
+        smap = stm.compute_smaps(data_module=data_module, return_recon=True, normalize=True)
         
         # select SVGs
         domain_svg_list = []
         for domain_ind in range(self.stamarker__n_clusters):
-            domain_svg_list.append(stamarker.utils.select_svgs(np.log(1 + smap), domain_ind, consensus_labels, alpha=self.stamarker__alpha))
+            domain_svg_list.append(utils.select_svgs(np.log(1 + smap), domain_ind, consensus_labels, alpha=self.stamarker__alpha))
 
 
         # save SVGs, their p_val_adj and modules to adata.uns
@@ -97,7 +102,7 @@ class StamarkerAlgo(ClusteringAlgorithm):
         self.adata.write(f'{self.filename}.h5ad', compression="gzip")
         logging.info(f'Saved clustering result {self.filename}.h5ad')
         
-        upset_domains_df = from_contents({ f"Spatial domain {ind}": l for ind, l in enumerate(self.data.uns['svg_'+self.cluster])})
+        upset_domains_df = upsetplot.from_contents({ f"Spatial domain {ind}": l for ind, l in enumerate(self.data.uns['svg_'+self.cluster])})
         fig, ax = plt.subplots(1, 1, figsize=(2.7, 2.5))
         df = pd.DataFrame(upset_domains_df.index.to_frame().apply(np.sum, axis=1))
         df.columns = ["counts"]

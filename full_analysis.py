@@ -4,11 +4,11 @@ import os
 
 import scipy
 import scanpy as sc
-import stereo as st
+# import stereo as st
 from core import SccAlgo
 # from core import SpatialdeAlgo
 from core import HotspotAlgo
-from core import SpagftAlgo
+# from core import SpagftAlgo
 # from core import SpagcnAlgo
 from core import StamarkerAlgo
 
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', help='Show logging messages', action='count', default=0)
     parser.add_argument('--n_jobs', help='Number of CPU cores for parallel execution', type=int, required=False, default=8)
 
-    parser.add_argument('--svg_only', help='Perform only identification of spatially variable genes', type=bool, action='store_true')
+    parser.add_argument('--svg_only', help='Perform only identification of spatially variable genes', type=bool)
 
     parser.add_argument('--spagft__method', help='Algorithm to be used after SpaGFT dim red', type=str, required=False, default='louvain', choices=['louvain','spectral'])
     parser.add_argument('--spagft__ratio_low_freq', help='ratio_low_freq', type=float, required=False, default=0.5)
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     if not scipy.sparse.issparse(adata.X):
         adata.X = scipy.sparse.csr_matrix(adata.X)
 
-    all_methods = {'scc':SccAlgo, 'spagft':SpagftAlgo, 'spatialde':SpatialdeAlgo, 'hotspot':HotspotAlgo, 'spagcn': SpagcnAlgo, 'stamarker':StamarkerAlgo}
+    all_methods = {'scc':SccAlgo, 'hotspot':HotspotAlgo, 'stamarker':StamarkerAlgo} #'spagft':SpagftAlgo, 'spatialde':SpatialdeAlgo, 'hotspot':HotspotAlgo, 'spagcn': SpagcnAlgo, 'stamarker':StamarkerAlgo}
     if args.method == 'all':
         for method in all_methods:
             algo = all_methods[method](adata, **vars(args))
