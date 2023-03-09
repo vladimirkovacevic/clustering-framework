@@ -1,31 +1,27 @@
 import argparse as ap
 import logging
 import os
+import re
 
 import scipy
 import scanpy as sc
 import stereo as st
-from core import SccAlgo
-from core import SpatialdeAlgo
-from core import HotspotAlgo
-from core import SpagftAlgo
-from core import SpagcnAlgo
-
+from core import *
 
 logging.basicConfig(level=logging.INFO)
 
 
-def RunAnalysis(algo):
-    algo.run()
-    if algo.svg_only:
-        algo.save_results()
-        return
-    if any(set(['celltype_pred', 'annotation']).intersection(set(algo.adata.obs_keys()))):
-        algo.calculate_clustering_metrics()
-        algo.plot_clustering_against_ground_truth()
-        # algo.plot_tissue_domains_against_ground_truth()
-    else:
-        algo.plot_clustering(color=[algo.cluster_key], sample_name=f'{algo.filename}.png')
+# def RunAnalysis(algo):
+#     algo.run()
+#     if algo.svg_only:
+#         algo.save_results()
+#         return
+#     if any(set(['celltype_pred', 'annotation']).intersection(set(algo.adata.obs_keys()))):
+#         algo.calculate_clustering_metrics()
+#         algo.plot_clustering_against_ground_truth()
+#         # algo.plot_tissue_domains_against_ground_truth()
+#     else:
+#         algo.plot_clustering(color=[algo.cluster_key], sample_name=f'{algo.filename}.png')
 
 if __name__ == '__main__':
 
@@ -85,13 +81,47 @@ if __name__ == '__main__':
     if not scipy.sparse.issparse(adata.X):
         adata.X = scipy.sparse.csr_matrix(adata.X)
 
-    all_methods = {'scc':SccAlgo, 'spagft':SpagftAlgo, 'spatialde':SpatialdeAlgo, 'hotspot':HotspotAlgo, 'spagcn': SpagcnAlgo}
+    available_methods = [module.__name__ for module in sys.modules.values() if re.search('^core.+', module.__name__)]
+    available_methods = [m.split('.')[1] for m in available_methods]
+
+    all_methods = {}
+    if 'scc' in available_methods:
+        all_methods['scc'] = SccAlgo
+    if 'spagft' in available_methods:
+        all_methods['spagft'] = SpagftAlgo
+    if 'spatialde' in available_methods:
+        all_methods['spatialde'] = SpatialdeAlgo
+    if 'hotspot' in available_methods:
+        all_methods['hotspot'] = HotspotAlgo
+    if 'spagcn' in available_methods:
+        all_methods['spagcn'] = SpagcnAlgo
+    
     if args.method == 'all':
         for method in all_methods:
             algo = all_methods[method](adata, **vars(args))
-            RunAnalysis(algo)
+            algo.run()
+            if algo.svg_only:
+                algo.save_results()
+            else:
+                if any(set(['celltype_pred', 'annotation']).intersection(set(algo.adata.obs_keys()))):
+                    algo.calculate_clustering_metrics()
+                    algo.plot_clustering_against_ground_truth()
+                    # algo.plot_tissue_domains_against_ground_truth()
+                else:
+                    algo.plot_clustering(color=[algo.cluster_key], sample_name=f'{algo.filename}.png')
+        algo.save_results()
+        sys.exit("Finished all methods")
+
+    algo = all_methods[args.method](adata, **vars(args))
+    algo.run()
+    if algo.svg_only:
+        algo.save_results()
     else:
-        algo = all_methods[args.method](adata, **vars(args))
-        RunAnalysis(algo)
+        if any(set(['celltype_pred', 'annotation']).intersection(set(algo.adata.obs_keys()))):
+            algo.calculate_clustering_metrics()
+            algo.plot_clustering_against_ground_truth()
+            # algo.plot_tissue_domains_against_ground_truth()
+        else:
+            algo.plot_clustering(color=[algo.cluster_key], sample_name=f'{algo.filename}.png')
 
     algo.save_results()
