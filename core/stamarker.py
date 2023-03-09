@@ -106,7 +106,7 @@ class StamarkerAlgo(ClusteringAlgorithm):
         # self.adata.write(f'{self.filename}.h5ad', compression="gzip")
         # logging.info(f'Saved clustering result {self.filename}.h5ad')
 
-        self.adata.uns['svg_'+self.cluster_key].to_csv(f'{self.filename}_svg.csv', index=True)
+        self.adata.uns['svg_'+self.cluster_key].to_csv(f'{self.adata.uns["sample_name"]}_{self.cluster_key}_svg.csv', index=True)
         #self.adata.uns['svg_modules'].to_csv(f'{self.filename}_svg_modules.csv', index=True)
         
         upset_domains_df = upsetplot.from_contents({ f"Spatial domain {ind}": l for ind, l in enumerate(self.adata.uns['svg_modules_'+self.cluster_key])})
