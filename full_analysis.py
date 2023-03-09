@@ -73,10 +73,10 @@ if __name__ == '__main__':
     parser.add_argument('--stamarker__min_counts', help='Preprocessing - minimum number of counts in cell', type=int, required=False, default=None)
     parser.add_argument('--stamarker__n_top_genes', help='Preprocessing - number of HVGs', type=int, required=False, default=3000)
     parser.add_argument('--stamarker__radial_cutoff', help='Preprocessing - radius cutoff for spatial neighbor network', type=float, required=False, default=50.0)
-    parser.add_argument('--stamarker__n_auto_enc', help='StamarkerAlgo: Number of auto-encoders', type=int, required=False, default=20)
+    parser.add_argument('--stamarker__n_auto_enc', help='StamarkerAlgo: Number of auto-encoders', type=int, required=False, default=10)
     parser.add_argument('--stamarker__clustering_method', help='StamarkerAlgo: clustering method',type=str, required=False, default='louvain', choices=['louvain','mclust'])
     parser.add_argument('--stamarker__n_clusters', help='StamarkerAlgo: wanted number of cluster (required for mclust and consensus clustering)', type=int, required=False, default=5)
-    parser.add_argument('--stamarker__alpha', help='StamarkerAlgo: number of sigmas for SVG threshold', type=int, required=False, default=2)
+    parser.add_argument('--stamarker__alpha', help='StamarkerAlgo: number of sigmas for SVG threshold', type=int, required=False, default=1.5)
 
     args = parser.parse_args()
 

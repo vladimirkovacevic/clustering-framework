@@ -8,6 +8,9 @@ from STAMarker.stamarker import pipeline, dataset, utils
 # import utils
 
 import pandas as pd
+import numpy as np
+import torch
+from matplotlib import pyplot as plt
 import upsetplot
 
 from sklearn.cluster import spectral_clustering
@@ -33,8 +36,8 @@ class StamarkerAlgo(ClusteringAlgorithm):
         
         # read model and trainer parameters
         config = dict()
-        config.update(utils.parse_args("_params/model.yaml"))
-        config.update(utils.parse_args("_params/trainer.yaml"))
+        config.update(utils.parse_args("/home/ubuntu/clustering-framework/core/_params/model.yaml"))
+        config.update(utils.parse_args("/home/ubuntu/clustering-framework/core/_params/trainer.yaml"))
         # update parameters if GPU is not available
         if not torch.cuda.is_available():
             config["stagate_trainer"]["gpus"] = 0
@@ -65,26 +68,27 @@ class StamarkerAlgo(ClusteringAlgorithm):
         # Consensus clustering
         # file with labels info is hardcoded
         stm.consensus_clustering(n_clusters=self.stamarker__n_clusters, name="cluster_labels.npy")
-        consensus_labels = np.load(stamarker.save_dir + "/consensus_labels.npy")
+        consensus_labels = np.load(stm.save_dir + "/consensus_labels.npy")
         self.adata.obs["Consensus clustering"] = consensus_labels.astype(str)
-        logging.info(f'Consensus clustering for {self._stamarker__n_clusters} clusters created {consensus_labels.size} clusters')
+        logging.info(f'Consensus clustering for {self.stamarker__n_clusters} clusters created {consensus_labels.size} clusters')
 
         # Train MLPs
         # file with labels info is hardcoded
-        stm.train_classifiers(data_module=data_module, n_clusters=self.stamarker__n_clusters, name="cluster_labels.npy")
+        stm.train_classifiers(data_module=data_module, n_class=self.stamarker__n_clusters, consensus_labels_path="consensus_labels.npy")
         
         # computer smaps - SVGs
-        smap = stm.compute_smaps(data_module=data_module, return_recon=True, normalize=True)
+        smap = stm.compute_smaps(data_module=data_module, return_recon=False, normalize=False)
         
         # select SVGs
         domain_svg_list = []
         for domain_ind in range(self.stamarker__n_clusters):
             domain_svg_list.append(utils.select_svgs(np.log(1 + smap), domain_ind, consensus_labels, alpha=self.stamarker__alpha))
 
-
+        svgs = [item for sublist in domain_svg_list for item in sublist]
         # save SVGs, their p_val_adj and modules to adata.uns
-        self.adata.uns['svg_'+self.cluster] = domain_svg_list
-        logging.info(f'STAMarker finished identifying spatially variable genes and their modules. Added results to adata.uns["svg_{self.cluster}"]')
+        self.adata.uns['svg_'+self.cluster_key] = pd.DataFrame(np.unique(svgs))
+        self.adata.uns['svg_modules_'+self.cluster_key] = domain_svg_list
+        logging.info(f'STAMarker finished identifying spatially variable genes. Added results to adata.uns["svg_{self.cluster_key}"]')
 
         ## save gene modules to adata.uns
         #self.adata.uns['svg_modules_'+self.cluster] = hs.modules
@@ -99,10 +103,13 @@ class StamarkerAlgo(ClusteringAlgorithm):
         # [NOTE] add clustering based on module scores embeddings
 
     def save_results(self):
-        self.adata.write(f'{self.filename}.h5ad', compression="gzip")
-        logging.info(f'Saved clustering result {self.filename}.h5ad')
+        # self.adata.write(f'{self.filename}.h5ad', compression="gzip")
+        # logging.info(f'Saved clustering result {self.filename}.h5ad')
+
+        self.adata.uns['svg_'+self.cluster_key].to_csv(f'{self.filename}_svg.csv', index=True)
+        #self.adata.uns['svg_modules'].to_csv(f'{self.filename}_svg_modules.csv', index=True)
         
-        upset_domains_df = upsetplot.from_contents({ f"Spatial domain {ind}": l for ind, l in enumerate(self.data.uns['svg_'+self.cluster])})
+        upset_domains_df = upsetplot.from_contents({ f"Spatial domain {ind}": l for ind, l in enumerate(self.adata.uns['svg_modules_'+self.cluster_key])})
         fig, ax = plt.subplots(1, 1, figsize=(2.7, 2.5))
         df = pd.DataFrame(upset_domains_df.index.to_frame().apply(np.sum, axis=1))
         df.columns = ["counts"]
@@ -112,8 +119,6 @@ class StamarkerAlgo(ClusteringAlgorithm):
         ax.set_xticks(df_counts.index)
         ax.set_xlabel("Number of spatial domains")
         ax.set_ylabel("Number of genes")
-        fig.savefig(f'{self_filename}_upsetplot.png')
+        fig.savefig(f'{self.filename}_upsetplot.png')
         
         
-        self.adata.uns['svg'+self.cluster].to_csv(f'{self.filename}_svg.csv', index=True)
-        #self.adata.uns['svg_modules'].to_csv(f'{self.filename}_svg_modules.csv', index=True)
