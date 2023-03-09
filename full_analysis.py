@@ -76,7 +76,7 @@ if __name__ == '__main__':
     parser.add_argument('--stamarker__n_auto_enc', help='StamarkerAlgo: Number of auto-encoders', type=int, required=False, default=10)
     parser.add_argument('--stamarker__clustering_method', help='StamarkerAlgo: clustering method',type=str, required=False, default='louvain', choices=['louvain','mclust'])
     parser.add_argument('--stamarker__n_clusters', help='StamarkerAlgo: wanted number of cluster (required for mclust and consensus clustering)', type=int, required=False, default=10)
-    parser.add_argument('--stamarker__alpha', help='StamarkerAlgo: number of sigmas for SVG threshold', type=int, required=False, default=1.5)
+    parser.add_argument('--stamarker__alpha', help='StamarkerAlgo: number of sigmas for SVG threshold', type=float, required=False, default=1.5)
 
     args = parser.parse_args()
 
