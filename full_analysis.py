@@ -7,7 +7,7 @@ import scanpy as sc
 # import stereo as st
 from core import SccAlgo
 # from core import SpatialdeAlgo
-from core import HotspotAlgo
+# from core import HotspotAlgo
 # from core import SpagftAlgo
 # from core import SpagcnAlgo
 from core import StamarkerAlgo
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     if not scipy.sparse.issparse(adata.X):
         adata.X = scipy.sparse.csr_matrix(adata.X)
 
-    all_methods = {'scc':SccAlgo, 'hotspot':HotspotAlgo, 'stamarker':StamarkerAlgo} #'spagft':SpagftAlgo, 'spatialde':SpatialdeAlgo, 'hotspot':HotspotAlgo, 'spagcn': SpagcnAlgo, 'stamarker':StamarkerAlgo}
+    all_methods = {'scc':SccAlgo, 'stamarker':StamarkerAlgo} #'spagft':SpagftAlgo, 'spatialde':SpatialdeAlgo, 'hotspot':HotspotAlgo, 'spagcn': SpagcnAlgo, 'stamarker':StamarkerAlgo}
     if args.method == 'all':
         for method in all_methods:
             algo = all_methods[method](adata, **vars(args))
