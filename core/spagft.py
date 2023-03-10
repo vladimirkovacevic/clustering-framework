@@ -44,7 +44,7 @@ class SpagftAlgo(ClusteringAlgorithm):
             logging.info(f'Identified spatially variable genes')
             if self.svg_only:
                 svg_list = gene_df[gene_df.cutoff_gft_score]\
-                    [gene_df.qvalue < 0.05].index.tolist()
+                    [gene_df.qvalue < self.svg_cutoff].index.tolist()
                 gene_df = gene_df.loc[svg_list, :]
                 self.adata.uns['svg_' + self.cluster_key] = gene_df
                 return

@@ -18,7 +18,7 @@ class SpatialdeAlgo(ClusteringAlgorithm):
         df = self.adata.to_df()
         coords = pd.DataFrame(index=df.index, data=self.adata.obsm['spatial'], columns=['x','y'])
         results = SpatialDE.run(coords, df)
-        results = results[results['qval'] < 0.05]
+        results = results[results['qval'] < self.svg_cutoff]
         results = results.assign(pvals_adj=results.qval)
         results = results.assign(genes=results.g)
         self.adata.uns['svg_' + self.cluster_key] = results
