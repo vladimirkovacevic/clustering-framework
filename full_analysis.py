@@ -8,7 +8,6 @@ import scanpy as sc
 import stereo as st
 from core import *
 
-logging.basicConfig(level=logging.INFO)
 
 
 if __name__ == '__main__':
@@ -24,7 +23,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_neigh_space', help='SCC: Number of neighbors using spatial distance', type=float, required=False, default=8)
     parser.add_argument('-s', '--spot_size', help='Size of the spot on plot', type=float, required=False, default=30)
     parser.add_argument('--n_marker_genes', help='Number of marker genes used for tissue domain identification by intersection. Consider all genes by default.', type=int, required=False, default=-1)
-    parser.add_argument('-v', '--verbose', help='Show logging messages', action='count', default=0)
+    parser.add_argument('-v', '--verbose', help='Show logging messages. 0 - Show warrnings, >0 show info, <0 no output generated.', type=int, default=0)
     parser.add_argument('--n_jobs', help='Number of CPU cores for parallel execution', type=int, required=False, default=8)
     parser.add_argument('--svg_only', help='Perform only identification of spatially variable genes', action='store_true')
     parser.add_argument('--svg_cutoff', help='Cutoff pval adj for SVGs', type=float, default=0.05)
@@ -54,22 +53,27 @@ if __name__ == '__main__':
 
     if args.verbose == 0:
         logging.basicConfig(level=logging.WARNING, force=True)
+    elif args.verbose > 0:
+        logging.basicConfig(level=logging.INFO)
+    else:
+        logging.basicConfig(level=logging.NOTSET)
 
     if not os.path.exists(args.out_path):
         os.makedirs(args.out_path)
 
-    if not (args.file.endswith('.h5ad') or args.file.endswith('.gef')):
-        raise AttributeError(f"File '{args.file}' extension is not .h5ad or .gef")
-    
     if args.file.endswith('.h5ad'):
         adata = sc.read(args.file)
     elif args.file.endswith('.gef'):
         data = st.io.read_gef(file_path=args.file, bin_type='cell_bins')
         adata = st.io.stereo_to_anndata(data)
+    else:
+        raise AttributeError(f"File '{args.file}' extension is not .h5ad or .gef")
 
+    # Most algorithms demand sparse cell gene matrix
     if not scipy.sparse.issparse(adata.X):
         adata.X = scipy.sparse.csr_matrix(adata.X)
 
+    # Parse requested and installed methods to make sure that requested methods are installed
     available_methods = [module.__name__ for module in sys.modules.values() if re.search('^core.+', module.__name__)]
     available_methods = [m.split('.')[1] for m in available_methods]
 
@@ -88,6 +92,7 @@ if __name__ == '__main__':
     if 'spagcn' in chosen_methods:
         all_methods['spagcn'] = SpagcnAlgo
     
+    # Process requested methods
     for method in all_methods:
         algo = all_methods[method](adata, **vars(args))
         algo.run()
@@ -97,8 +102,8 @@ if __name__ == '__main__':
             if any(set(['celltype_pred', 'annotation']).intersection(set(algo.adata.obs_keys()))):
                 algo.calculate_clustering_metrics()
                 algo.plot_clustering_against_ground_truth()
-                # algo.plot_tissue_domains_against_ground_truth()
             else:
                 algo.plot_clustering(color=[algo.cluster_key], sample_name=f'{algo.filename}.png')
 
     algo.save_results()
+
