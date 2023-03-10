@@ -1,8 +1,6 @@
 import sys
 import logging
 
-logging.basicConfig(level=logging.INFO)
-
 from .clustering_algorithm import ClusteringAlgorithm
 from .scc import SccAlgo
 from .utils import timeit

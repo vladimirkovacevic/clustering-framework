@@ -11,25 +11,13 @@ from core import *
 logging.basicConfig(level=logging.INFO)
 
 
-# def RunAnalysis(algo):
-#     algo.run()
-#     if algo.svg_only:
-#         algo.save_results()
-#         return
-#     if any(set(['celltype_pred', 'annotation']).intersection(set(algo.adata.obs_keys()))):
-#         algo.calculate_clustering_metrics()
-#         algo.plot_clustering_against_ground_truth()
-#         # algo.plot_tissue_domains_against_ground_truth()
-#     else:
-#         algo.plot_clustering(color=[algo.cluster_key], sample_name=f'{algo.filename}.png')
-
 if __name__ == '__main__':
 
     sc.settings.verbosity = 3      
     sc.settings.set_figure_params(dpi=300, facecolor='white')
     parser = ap.ArgumentParser(description='A script that performs SVG and tissue domain identification.')
     parser.add_argument('-f', '--file', help='File that contain data to be clustered', type=str, required=True)
-    parser.add_argument('-m', '--method', help='A type of tissue clustering method to perform', type=str, required=False, choices=['spagft', 'spatialde', 'scc', 'spagcn', 'hotspot', 'all'], default='spagft')
+    parser.add_argument('-m', '--methods', help='Comma separated list of methods to perform. Available: spagft, spatialde, scc, spagcn, hotspot', type=str, required=True, default='spagft')
     parser.add_argument('-o', '--out_path', help='Absolute path to store outputs', type=str, required=True)
     parser.add_argument('-r', '--resolution', help='All: Resolution of the clustering algorithm', type=float, required=False, default=2)
     parser.add_argument('--n_neigh_gene', help='SCC: Number of neighbors using pca of gene expression', type=float, required=False, default=30)
@@ -84,44 +72,32 @@ if __name__ == '__main__':
     available_methods = [module.__name__ for module in sys.modules.values() if re.search('^core.+', module.__name__)]
     available_methods = [m.split('.')[1] for m in available_methods]
 
+    chosen_methods = args.methods.split(',')
+    assert set(chosen_methods).issubset(set(available_methods)), "The requested methods could not be executed because your environment lacks needed libraries."
+        
     all_methods = {}
-    if 'scc' in available_methods:
+    if 'scc' in chosen_methods:
         all_methods['scc'] = SccAlgo
-    if 'spagft' in available_methods:
+    if 'spagft' in chosen_methods:
         all_methods['spagft'] = SpagftAlgo
-    if 'spatialde' in available_methods:
+    if 'spatialde' in chosen_methods:
         all_methods['spatialde'] = SpatialdeAlgo
-    if 'hotspot' in available_methods:
+    if 'hotspot' in chosen_methods:
         all_methods['hotspot'] = HotspotAlgo
-    if 'spagcn' in available_methods:
+    if 'spagcn' in chosen_methods:
         all_methods['spagcn'] = SpagcnAlgo
     
-    if args.method == 'all':
-        for method in all_methods:
-            algo = all_methods[method](adata, **vars(args))
-            algo.run()
-            if algo.svg_only:
-                algo.save_results()
-            else:
-                if any(set(['celltype_pred', 'annotation']).intersection(set(algo.adata.obs_keys()))):
-                    algo.calculate_clustering_metrics()
-                    algo.plot_clustering_against_ground_truth()
-                    # algo.plot_tissue_domains_against_ground_truth()
-                else:
-                    algo.plot_clustering(color=[algo.cluster_key], sample_name=f'{algo.filename}.png')
-        algo.save_results()
-        sys.exit("Finished all methods")
-
-    algo = all_methods[args.method](adata, **vars(args))
-    algo.run()
-    if algo.svg_only:
-        algo.save_results()
-    else:
-        if any(set(['celltype_pred', 'annotation']).intersection(set(algo.adata.obs_keys()))):
-            algo.calculate_clustering_metrics()
-            algo.plot_clustering_against_ground_truth()
-            # algo.plot_tissue_domains_against_ground_truth()
+    for method in all_methods:
+        algo = all_methods[method](adata, **vars(args))
+        algo.run()
+        if algo.svg_only:
+            algo.save_results()
         else:
-            algo.plot_clustering(color=[algo.cluster_key], sample_name=f'{algo.filename}.png')
+            if any(set(['celltype_pred', 'annotation']).intersection(set(algo.adata.obs_keys()))):
+                algo.calculate_clustering_metrics()
+                algo.plot_clustering_against_ground_truth()
+                # algo.plot_tissue_domains_against_ground_truth()
+            else:
+                algo.plot_clustering(color=[algo.cluster_key], sample_name=f'{algo.filename}.png')
 
     algo.save_results()
