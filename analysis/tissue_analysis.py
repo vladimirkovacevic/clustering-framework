@@ -1,10 +1,8 @@
 import os
 import json
 import argparse
-import sys
 
 import numpy as np
-import pandas as pd
 import scanpy as sc
 import stereo as st
 import matplotlib.pyplot as plt

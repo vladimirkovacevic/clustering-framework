@@ -1,31 +1,15 @@
 import argparse as ap
 import logging
 import os
+import re
 
 import scipy
 import scanpy as sc
 import stereo as st
-from core import SccAlgo
-from core import SpatialdeAlgo
-from core import HotspotAlgo
-from core import SpagftAlgo
-from core import SpagcnAlgo
-
+from core import *
 
 logging.basicConfig(level=logging.INFO)
 
-
-def RunAnalysis(algo):
-    algo.run()
-    if algo.svg_only:
-        algo.save_results()
-        return
-    if any(set(['celltype_pred', 'annotation']).intersection(set(algo.adata.obs_keys()))):
-        algo.calculate_clustering_metrics()
-        algo.plot_clustering_against_ground_truth()
-        # algo.plot_tissue_domains_against_ground_truth()
-    else:
-        algo.plot_clustering(color=[algo.cluster_key], sample_name=f'{algo.filename}.png')
 
 if __name__ == '__main__':
 
@@ -33,7 +17,7 @@ if __name__ == '__main__':
     sc.settings.set_figure_params(dpi=300, facecolor='white')
     parser = ap.ArgumentParser(description='A script that performs SVG and tissue domain identification.')
     parser.add_argument('-f', '--file', help='File that contain data to be clustered', type=str, required=True)
-    parser.add_argument('-m', '--method', help='A type of tissue clustering method to perform', type=str, required=False, choices=['spagft', 'spatialde', 'scc', 'spagcn', 'hotspot', 'all'], default='spagft')
+    parser.add_argument('-m', '--methods', help='Comma separated list of methods to perform. Available: spagft, spatialde, scc, spagcn, hotspot', type=str, required=True, default='spagft')
     parser.add_argument('-o', '--out_path', help='Absolute path to store outputs', type=str, required=True)
     parser.add_argument('-r', '--resolution', help='All: Resolution of the clustering algorithm', type=float, required=False, default=2)
     parser.add_argument('--n_neigh_gene', help='SCC: Number of neighbors using pca of gene expression', type=float, required=False, default=30)
@@ -42,7 +26,8 @@ if __name__ == '__main__':
     parser.add_argument('--n_marker_genes', help='Number of marker genes used for tissue domain identification by intersection. Consider all genes by default.', type=int, required=False, default=-1)
     parser.add_argument('-v', '--verbose', help='Show logging messages', action='count', default=0)
     parser.add_argument('--n_jobs', help='Number of CPU cores for parallel execution', type=int, required=False, default=8)
-    parser.add_argument('--svg_only', help='Perform only identification of spatially variable genes', type=bool, action='store_true')
+    parser.add_argument('--svg_only', help='Perform only identification of spatially variable genes', action='store_true')
+    parser.add_argument('--svg_cutoff', help='Cutoff pval adj for SVGs', type=float, default=0.05)
 
     parser.add_argument('--spagft__method', help='Algorithm to be used after SpaGFT dim red', type=str, required=False, default='louvain', choices=['louvain','spectral'])
     parser.add_argument('--spagft__ratio_low_freq', help='ratio_low_freq', type=float, required=False, default=0.5)
@@ -85,13 +70,35 @@ if __name__ == '__main__':
     if not scipy.sparse.issparse(adata.X):
         adata.X = scipy.sparse.csr_matrix(adata.X)
 
-    all_methods = {'scc':SccAlgo, 'spagft':SpagftAlgo, 'spatialde':SpatialdeAlgo, 'hotspot':HotspotAlgo, 'spagcn': SpagcnAlgo}
-    if args.method == 'all':
-        for method in all_methods:
-            algo = all_methods[method](adata, **vars(args))
-            RunAnalysis(algo)
-    else:
-        algo = all_methods[args.method](adata, **vars(args))
-        RunAnalysis(algo)
+    available_methods = [module.__name__ for module in sys.modules.values() if re.search('^core.+', module.__name__)]
+    available_methods = [m.split('.')[1] for m in available_methods]
+
+    chosen_methods = args.methods.split(',')
+    assert set(chosen_methods).issubset(set(available_methods)), "The requested methods could not be executed because your environment lacks needed libraries."
+        
+    all_methods = {}
+    if 'scc' in chosen_methods:
+        all_methods['scc'] = SccAlgo
+    if 'spagft' in chosen_methods:
+        all_methods['spagft'] = SpagftAlgo
+    if 'spatialde' in chosen_methods:
+        all_methods['spatialde'] = SpatialdeAlgo
+    if 'hotspot' in chosen_methods:
+        all_methods['hotspot'] = HotspotAlgo
+    if 'spagcn' in chosen_methods:
+        all_methods['spagcn'] = SpagcnAlgo
+    
+    for method in all_methods:
+        algo = all_methods[method](adata, **vars(args))
+        algo.run()
+        if algo.svg_only:
+            algo.save_results()
+        else:
+            if any(set(['celltype_pred', 'annotation']).intersection(set(algo.adata.obs_keys()))):
+                algo.calculate_clustering_metrics()
+                algo.plot_clustering_against_ground_truth()
+                # algo.plot_tissue_domains_against_ground_truth()
+            else:
+                algo.plot_clustering(color=[algo.cluster_key], sample_name=f'{algo.filename}.png')
 
     algo.save_results()
