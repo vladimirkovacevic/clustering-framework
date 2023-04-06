@@ -1,0 +1,300 @@
+{
+    "AGM": [
+        "Wt1",
+        "Hbb-bs"
+    ],
+    "Adipose tissue": [
+        "Adipoq",
+        "Gpd1",
+        "Car3",
+        "Irs4",
+        "Pparg",
+        "Cpa3"
+    ],
+    "Adrenal gland": [
+        "Akr1b7",
+        "Cyp11a1",
+        "Cyp11b1",
+        "Gml2",
+        "Hsd3b1"
+    ],
+    "Blood vessel": [
+        "Eln",
+        "Fbln5"
+    ],
+    "Bone": [
+        "Col2a1",
+        "Col11a1",
+        "Col11a2"
+    ],
+    "Brain": [
+        "Sox2",
+        "Sox1",
+        "Fabp7",
+        "Pou3f2",
+        "Foxd1"
+    ],
+    "Branchial arch": [
+        "Dlx5",
+        "Dlx2",
+        "Dlx1",
+        "Wdr59",
+        "Prrx1"
+    ],
+    "Cartilage": [
+        "Sp7",
+        "Ifitm5",
+        "Ibsp",
+        "Slc13a5"
+    ],
+    "Cartilage primordium": [
+        "Sox5",
+        "Sox6",
+        "Sox9",
+        "Susd5",
+        "Matn3",
+        "Acan",
+        "Matn1"
+    ],
+    "Choroid plexus": [
+        "Htr2c",
+        "Dynlrb2",
+        "Ttr",
+        "Defb11",
+        "Kcne2"
+    ],
+    "Connective tissue": [
+        "Gdf10",
+        "Atoh1",
+        "Msx1",
+        "Postn",
+        "Lum",
+        "Dcn",
+        "Col1a1"
+    ],
+    "Dermomyotome": [
+        "Myh8",
+        "Acta1",
+        "Myh3",
+        "Mylpf",
+        "Myog",
+        "Tnnt1"
+    ],
+    "Dorsal root ganglion": [
+        "Ppp1r1c",
+        "Prdm12",
+        "Pou4f1",
+        "Mreg"
+    ],
+    "Epidermis": [
+        "Krt5",
+        "Krt14",
+        "Krt15",
+        "Krtdap",
+        "Perp"
+    ],
+    "Eye": [
+        "Six3",
+        "Six6",
+        "Dapl1"
+    ],
+    "Facial nerve": [
+        "Isl2",
+        "Mreg",
+        "Ppp1r17"
+    ],
+    "GI tract": [
+        "Dmbt1",
+        "Prap1",
+        "Muc13",
+        "Hnf4g",
+        "Vil1",
+        "Lgals2",
+        "Isx"
+    ],
+    "Head mesenchyme": [
+        "Pdgfa",
+        "Six2",
+        "Crym",
+        "Alx4"
+    ],
+    "Heart": [
+        "Ttn",
+        "Actc1",
+        "Myl7",
+        "Myl4",
+        "Tnni1",
+        "Tnnt2"
+    ],
+    "Inner ear": [
+        "Tecta",
+        "Tectb",
+        "Otog",
+        "Otogl",
+        "Oc90",
+        "Pomc",
+        "Pou1f1",
+        "Six6"
+    ],
+    "Jaw and tooth": [
+        "Dlx3",
+        "Pax9",
+        "Msx1",
+        "Lhx8",
+        "Msx2",
+        "Pax3",
+        "Alx1",
+        "Glis3"
+    ],
+    "Kidney": [
+        "Lrriq1",
+        "Tmem52b",
+        "Tmem27",
+        "Wt1"
+    ],
+    "Liver": [
+        "Afp",
+        "Fgb",
+        "Hnf4a",
+        "Rbp4",
+        "Trf"
+    ],
+    "Lung": [
+        "Tbx5",
+        "Sftpc",
+        "Cldn18",
+        "Gata5",
+        "Foxa2",
+        "Sfta2",
+        "Scgb3a2"
+    ],
+    "Lung primordium": [
+        "Barx1",
+        "Foxf1"
+    ],
+    "Meninges": [
+        "Onecut2",
+        "Otx2"
+    ],
+    "Mesenchyme": [
+        "Col25a1",
+        "Foxp2",
+        "Pitx2",
+        "Tbx15"
+    ],
+    "Mesothelium": [
+        "Wt1",
+        "Lrrn4",
+        "Muc16",
+        "Il33"
+    ],
+    "Mucosal epithelium": [
+        "Serpinb11",
+        "Bpifa1",
+        "Krt6a",
+        "Krt23"
+    ],
+    "Muscle": [
+        "Ttn",
+        "Neb",
+        "Myh3",
+        "Myl1",
+        "Myh8"
+    ],
+    "Neural crest": [
+        "Flrt2",
+        "Eda",
+        "Tbx18"
+    ],
+    "Notochord": [
+        "Shh",
+        "Foxj1",
+        "Foxa2"
+    ],
+    "Olfactory epithelium": [
+        "Ugt2a2",
+        "Sult1e1",
+        "Cyp2g1",
+        "S100z"
+    ],
+    "Ovary": [
+        "Utf1",
+        "Rhox6",
+        "Rhox3g"
+    ],
+    "Pancreas": [
+        "Gcg",
+        "Cpa1",
+        "Ctrb1"
+    ],
+    "Pancreas primordium": [
+        "Chgb",
+        "Dbh",
+        "Ndufa4l2",
+        "Cck"
+    ],
+    "Primitive gut tube": [
+        "Hlx",
+        "Shisa3"
+    ],
+    "Sclerotome": [
+        "Pax1",
+        "Pax9",
+        "Meox1",
+        "Meox2",
+        "Fibin"
+    ],
+    "Smooth muscle": [
+        "Actg2",
+        "Adamdec1",
+        "Agr2",
+        "Myh11",
+        "Mylk",
+        "Myocd",
+        "Cnn1"
+    ],
+    "Spinal cord": [
+        "Olig3",
+        "Neurog2",
+        "Olig2",
+        "Neurod4",
+        "Msx3"
+    ],
+    "Submandibular gland": [
+        "Dcpp1",
+        "Dcpp3",
+        "Wfdc18",
+        "Gpx2",
+        "Ehf"
+    ],
+    "Surface ectoderm": [
+        "Wnt6",
+        "Zic3",
+        "Gjb2",
+        "Trp63",
+        "Cxcl14"
+    ],
+    "Sympathetic nerve": [
+        "Hmx1",
+        "Hand1",
+        "Dbh",
+        "Insm2",
+        "Phox2a"
+    ],
+    "Testis": [
+        "Zcwpw1",
+        "Tex15",
+        "Dazl"
+    ],
+    "Thymus": [
+        "Khdc1a",
+        "Tcrg-C2"
+    ],
+    "Urogenital ridge": [
+        "Wt1",
+        "Dppa5a",
+        "Tcf21",
+        "Hlx",
+        "Dppa3"
+    ]
+}
