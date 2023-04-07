@@ -2,14 +2,12 @@ import stereo as st
 import pandas as pd
 import scanpy as sc
 import numpy as np
-import pickle
 import json
 
 from stereo.core.stereo_exp_data import StereoExpData
 from anndata import AnnData
 from typing import Optional
 from collections import defaultdict
-from numpy import inf
 
 ADJ_PVAL_CUTOFF = 0.05
 
@@ -39,12 +37,15 @@ def anndata_to_stereo(andata: AnnData, use_raw=False, spatial_key: Optional[str]
     # position
     data.position = andata.obsm[spatial_key] if spatial_key is not None else None
     return data
+import os
+print(os.getcwd())
 
-with open('annotation_to_marker.json', 'r') as handle:
+with open('misc/markers_stereopy/annotation_to_marker.json', 'r') as handle:
     AnnoToMg = json.load(handle)
+# sample = 'E11.5_E1S2'
+sample = 'E12.5_E1S2'
 # sample = 'E13.5_E1S2'
-sample = 'E10.5_E1S2'
-adata = sc.read(f"/goofys/Samples/MOSTA/E10.5/{sample}.MOSTA.h5ad")
+adata = sc.read(f"/goofys/Samples/MOSTA/E12.5/{sample}.MOSTA.h5ad")
 
 sdata = anndata_to_stereo(adata, spatial_key = 'spatial', use_raw=True)
 
@@ -57,21 +58,28 @@ sdata.tl.result['annotation'] = df
 sdata.tl.raw = sdata
 sdata.tl.find_marker_genes(cluster_res_key='annotation', use_highly_genes=False, use_raw=False, sort_by='scores') #can be 'scores' or 'log2fc'
 # sdata.tl.filter_marker_genes() #min_in_group_fraction=None, max_out_group_fraction=None, 
-
-df_in = sdata.tl.result['marker_genes']['pct'].loc[:, sdata.tl.result['marker_genes']['pct'].columns != 'genes']
-df2_out = sdata.tl.result['marker_genes']['pct_rest'].loc[:, sdata.tl.result['marker_genes']['pct_rest'].columns != 'genes']
-
+# result is stored in sdata.tl.result['marker_genes_filtered']
 
 marker_genes = defaultdict(list)
-for k,v in sdata.tl.result['marker_genes_filtered'].items():
+marker_genes_cut = defaultdict(list)
+for k,v in sdata.tl.result['marker_genes'].items():
     if ".vs.rest" in k:
-        v = v[v['pvalues_adj'] < ADJ_PVAL_CUTOFF]
+        v_cut = v[v['pvalues_adj'] < ADJ_PVAL_CUTOFF]
         k = k[:-len(".vs.rest")]
         for i, gene in enumerate(v['genes']):
             if k in AnnoToMg.keys() and gene in AnnoToMg[k]:
                 marker_genes[k].append((gene, i))
+        for i, gene in enumerate(v_cut['genes']):
+            if k in AnnoToMg.keys() and gene in AnnoToMg[k]:
+                marker_genes_cut[k].append((gene, i))
 
-with open(f'stereo_markers_with_known_{sample}.json', 'w') as handle:
+with open(f'misc/markers_stereopy/stereo_markers_with_known_{sample}.json', 'w') as handle:
     json.dump(marker_genes, handle, 
                 sort_keys=True,
                 indent=4)
+    
+with open(f'misc/markers_stereopy/stereo_markers_with_known_{sample}_cutoff.json', 'w') as handle:
+    json.dump(marker_genes_cut, handle, 
+                sort_keys=True,
+                indent=4)
+
