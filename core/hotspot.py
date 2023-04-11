@@ -11,10 +11,9 @@ from .utils import timeit
 
 class HotspotAlgo(ClusteringAlgorithm):
     def __init__(self, adata, **params):
-        super().__init__(adata, **params)
+        super().__init__('hotspot', adata, **params)
         self.filename = self.adata.uns['sample_name'] + f"_hotspot_hvg{not self.hotspot__use_full_gene_set}_hvgnt{self.hotspot__n_hvgs}_ur{not self.hotspot__use_normalized_data}_nm{self.hotspot__null_model}_nn{self.hotspot__n_neighbors}_core{self.hotspot__core_only}_fdrt{self.hotspot__fdr_threshold}__mgt{self.hotspot__min_gene_threshold}_nj{self.n_jobs}"
-        
-        self.cluster_key = 'hotspot'
+    
 
     def preprocess(
         self,

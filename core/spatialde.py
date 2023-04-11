@@ -8,9 +8,8 @@ from .utils import timeit
 
 class SpatialdeAlgo(ClusteringAlgorithm):
     def __init__(self, adata, **params):
-        super().__init__(adata, **params)
+        super().__init__('spatialde', adata, **params)
         self.filename = self.adata.uns['sample_name'] + "_spatialde"
-        self.cluster_key = 'spatialde'
 
     @timeit
     def run(self):

@@ -11,7 +11,8 @@ from sklearn.metrics import adjusted_rand_score, v_measure_score, mutual_info_sc
 from abc import ABC, abstractmethod
 
 class ClusteringAlgorithm(ABC):
-    def __init__(self, adata, **params):
+    def __init__(self, cluster_key, adata, **params):
+        self.cluster_key = cluster_key
         self.adata = adata
         self.adata.uns['algo_params'] = params
         self.adata.uns['sample_name'] = os.path.join(self.adata.uns['algo_params']['out_path'], os.path.basename(self.adata.uns['algo_params']['file'].rsplit(".", 1)[0]))
@@ -57,7 +58,7 @@ class ClusteringAlgorithm(ABC):
         # Plot ground truth
         self.plot_clustering(color=[labels_true], sample_name=f"{self.adata.uns['sample_name']}_ground_truth.png", title = "Ground Truth" , palette=list(self.adata.uns[labels_true + '_colors']))
         # Plot remaped clusters
-        self.plot_clustering(color=[labels_pred + '_remap'], sample_name=f'{self.filename}.png', title = f'SCC Remap\nARS: {self.adata.uns["metrics"]["ARS"]}, Mut-info: {self.adata.uns["metrics"]["Mut-info"]}, V-Score: {self.adata.uns["metrics"]["V-Score"]}', palette=remapped_colors)
+        self.plot_clustering(color=[labels_pred + '_remap'], sample_name=f'{self.filename}.png', title = f'{self.cluster_key}\nARS: {self.adata.uns["metrics"]["ARS"]}, Mut-info: {self.adata.uns["metrics"]["Mut-info"]}, V-Score: {self.adata.uns["metrics"]["V-Score"]}', palette=remapped_colors)
 
     def plot_tissue_domains_against_ground_truth(
         self,
@@ -83,10 +84,12 @@ class ClusteringAlgorithm(ABC):
         self,
         sample_name="unknown",
         color=['clusters'],
-        title = "unknown",
+        title=None,
         show=False,
         palette=None
         ):
+        if title is None:
+            title = self.cluster_key
         figure, ax = plt.subplots(nrows=1, ncols=1)
         axes = sc.pl.spatial(self.adata, color=color, palette=palette, spot_size=self.spot_size, ax=ax, title=title, show=show)
         axes[0].set_xlabel('')
