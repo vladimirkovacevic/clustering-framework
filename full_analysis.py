@@ -103,7 +103,7 @@ if __name__ == '__main__':
                 algo.calculate_clustering_metrics()
                 algo.plot_clustering_against_ground_truth()
             else:
-                algo.plot_clustering(color=[algo.cluster_key], title=f'{algo.cluster_key}')
+                algo.plot_clustering()
 
     algo.save_results()
 

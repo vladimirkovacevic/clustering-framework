@@ -82,17 +82,19 @@ class ClusteringAlgorithm(ABC):
     def plot_clustering(
         self,
         sample_name=None,
-        color=['clusters'],
-        title="clustering algorithm",
+        color=None,
+        title=None,
         show=False,
         palette=None
         ):
-        if sample_name is None:
-            sample_name = f'{self.filename}.png'
+        if sample_name is None: sample_name = f'{self.filename}.png'
+        if color is None: color = [self.cluster_key]
+        if title is None: title = self.cluster_key
+
         figure, ax = plt.subplots(nrows=1, ncols=1)
-        axes = sc.pl.spatial(self.adata, color=color, palette=palette, spot_size=self.spot_size, ax=ax, title=title, show=show)
-        axes[0].set_xlabel('')
-        axes[0].set_ylabel('')
+        sc_axes = sc.pl.spatial(self.adata, color=color, palette=palette, spot_size=self.spot_size, ax=ax, title=title, show=show)
+        sc_axes[0].set_xlabel('')
+        sc_axes[0].set_ylabel('')
         figure.savefig(sample_name, dpi=200, bbox_inches='tight')
         plt.close()
 
