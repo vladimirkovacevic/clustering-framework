@@ -55,9 +55,9 @@ class ClusteringAlgorithm(ABC):
         labels_true = list(set(['celltype_pred','annotation']).intersection(set(self.adata.obs_keys())))[0]
         remapped_colors = self.remap_colors_to_ground_truth_by_labels(labels_true, labels_pred)
         # Plot ground truth
-        self.plot_clustering(color=[labels_true], sample_name=f"{self.adata.uns['sample_name']}_ground_truth.png", title = "Ground Truth" , palette=list(self.adata.uns[labels_true + '_colors']))
+        self.plot_clustering(color=[labels_true], sample_name=f"{self.adata.uns['sample_name']}_ground_truth.png", title = "Ground truth" , palette=list(self.adata.uns[labels_true + '_colors']))
         # Plot remaped clusters
-        self.plot_clustering(color=[labels_pred + '_remap'], sample_name=f'{self.filename}.png', title = f'SCC Remap\nARS: {self.adata.uns["metrics"]["ARS"]}, Mut-info: {self.adata.uns["metrics"]["Mut-info"]}, V-Score: {self.adata.uns["metrics"]["V-Score"]}', palette=remapped_colors)
+        self.plot_clustering(color=[labels_pred + '_remap'], sample_name=f'{self.filename}.png', title = f'{self.cluster_key}\nARI: {self.adata.uns["metrics"]["ARS"]}, Mut-info: {self.adata.uns["metrics"]["Mut-info"]}, V-Score: {self.adata.uns["metrics"]["V-Score"]}', palette=remapped_colors)
 
     def plot_tissue_domains_against_ground_truth(
         self,
@@ -81,16 +81,20 @@ class ClusteringAlgorithm(ABC):
     
     def plot_clustering(
         self,
-        sample_name="unknown",
-        color=['clusters'],
-        title = "unknown",
+        sample_name=None,
+        color=None,
+        title=None,
         show=False,
         palette=None
         ):
+        sample_name = f'{self.filename}.png' if sample_name is None else sample_name
+        color = [self.cluster_key] if color is None else color
+        title = self.cluster_key if title is None else title
+
         figure, ax = plt.subplots(nrows=1, ncols=1)
-        axes = sc.pl.spatial(self.adata, color=color, palette=palette, spot_size=self.spot_size, ax=ax, title=title, show=show)
-        axes[0].set_xlabel('')
-        axes[0].set_ylabel('')
+        sc_axes = sc.pl.spatial(self.adata, color=color, palette=palette, spot_size=self.spot_size, ax=ax, legend_fontsize='small', title=title, show=show)
+        sc_axes[0].set_xlabel('')
+        sc_axes[0].set_ylabel('')
         figure.savefig(sample_name, dpi=200, bbox_inches='tight')
         plt.close()
 

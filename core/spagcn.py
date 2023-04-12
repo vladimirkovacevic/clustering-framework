@@ -14,8 +14,8 @@ class SpagcnAlgo(ClusteringAlgorithm):
     def __init__(self, adata, **params):
         # SVG identification with SpaGCN
         super().__init__(adata, **params)
-        self.filename = self.adata.uns['sample_name'] + '_spagcn'
         self.cluster_key = 'spagcn'
+        self.filename = self.adata.uns['sample_name'] + '_spagcn'
    
     @timeit
     def run(self):
