@@ -8,7 +8,8 @@ from .utils import timeit
 
 class SpatialdeAlgo(ClusteringAlgorithm):
     def __init__(self, adata, **params):
-        super().__init__('spatialde', adata, **params)
+        super().__init__(adata, **params)
+        self.cluster_key = 'spatialde'
         self.filename = self.adata.uns['sample_name'] + "_spatialde"
 
     @timeit
@@ -30,5 +31,3 @@ class SpatialdeAlgo(ClusteringAlgorithm):
         self.adata.write(f'{self.filename}.h5ad', compression="gzip")
         self.adata.uns['svg_' + self.cluster_key].to_csv(f'{self.filename}_svgs.csv')
         logging.info(f'Saved result {self.filename}.h5ad')
-
-

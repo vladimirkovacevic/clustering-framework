@@ -13,7 +13,8 @@ from core import timeit
 class SpagcnAlgo(ClusteringAlgorithm):
     def __init__(self, adata, **params):
         # SVG identification with SpaGCN
-        super().__init__('spagcn', adata, **params)
+        super().__init__(adata, **params)
+        self.cluster_key = 'spagcn'
         self.filename = self.adata.uns['sample_name'] + '_spagcn'
    
     @timeit

@@ -23,7 +23,8 @@ logging.basicConfig(level=logging.INFO)
 
 class SpagftAlgo(ClusteringAlgorithm):
     def __init__(self, adata, **params):
-        super().__init__('spagft', adata, **params)
+        super().__init__(adata, **params)
+        self.cluster_key = 'spagft'
         self.filename = self.adata.uns['sample_name'] + f"_spagft_r{self.resolution}_rl{self.spagft__ratio_low_freq}_rh{self.spagft__ratio_high_freq}_rn{self.spagft__ratio_neighbors}__mg{self.n_marker_genes}"
 
     @timeit
