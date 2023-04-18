@@ -23,6 +23,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_neigh_space', help='SCC: Number of neighbors using spatial distance', type=float, required=False, default=8)
     parser.add_argument('-s', '--spot_size', help='Size of the spot on plot', type=float, required=False, default=30)
     parser.add_argument('--n_marker_genes', help='Number of marker genes used for tissue domain identification by intersection. Consider all genes by default.', type=int, required=False, default=-1)
+    parser.add_argument('--n_pcs', help = 'Number of PCs to use for clustering', type=int, required=False, default=40)
     parser.add_argument('-v', '--verbose', help='Show logging messages. 0 - Show warrnings, >0 show info, <0 no output generated.', type=int, default=0)
     parser.add_argument('--n_jobs', help='Number of CPU cores for parallel execution', type=int, required=False, default=8)
     parser.add_argument('--svg_only', help='Perform only identification of spatially variable genes', action='store_true')
@@ -76,6 +77,9 @@ if __name__ == '__main__':
     # Parse requested and installed methods to make sure that requested methods are installed
     available_methods = [module.__name__ for module in sys.modules.values() if re.search('^core.+', module.__name__)]
     available_methods = [m.split('.')[1] for m in available_methods]
+    available_methods.remove('leiden_louvain')
+    available_methods.append('leiden')
+    available_methods.append('louvain')
 
     chosen_methods = args.methods.split(',')
     assert set(chosen_methods).issubset(set(available_methods)), "The requested methods could not be executed because your environment lacks needed libraries."
@@ -84,9 +88,9 @@ if __name__ == '__main__':
     if 'scc' in chosen_methods:
         all_methods['scc'] = SccAlgo
     if 'leiden' in chosen_methods:
-        all_methods['leiden'] = LeidenAlgo
+        all_methods['leiden'] = LeidenLouvainAlgo
     if 'louvain' in chosen_methods:
-        all_methods['louvain'] = LouvainAlgo
+        all_methods['louvain'] = LeidenLouvainAlgo
     if 'spagft' in chosen_methods:
         all_methods['spagft'] = SpagftAlgo
     if 'spatialde' in chosen_methods:
@@ -98,7 +102,12 @@ if __name__ == '__main__':
     
     # Process requested methods
     for method in all_methods:
-        algo = all_methods[method](adata, **vars(args))
+        algo = None
+        if method == 'louvain' or method == 'leiden':
+            algo = all_methods[method](adata, method, **vars(args))    
+        else:
+            algo = all_methods[method](adata, **vars(args))
+        
         algo.run()
         if algo.svg_only:
             algo.save_results()
