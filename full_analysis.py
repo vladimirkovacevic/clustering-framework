@@ -16,7 +16,7 @@ if __name__ == '__main__':
     sc.settings.set_figure_params(dpi=300, facecolor='white')
     parser = ap.ArgumentParser(description='A script that performs SVG and tissue domain identification.')
     parser.add_argument('-f', '--file', help='File that contain data to be clustered', type=str, required=True)
-    parser.add_argument('-m', '--methods', help='Comma separated list of methods to perform. Available: spagft, spatialde, scc, spagcn, hotspot', type=str, required=True, default='spagft')
+    parser.add_argument('-m', '--methods', help='Comma separated list of methods to perform. Available: spagft, spatialde, scc, leiden, louvain, spagcn, hotspot', type=str, required=True, default='spagft')
     parser.add_argument('-o', '--out_path', help='Absolute path to store outputs', type=str, required=True)
     parser.add_argument('-r', '--resolution', help='All: Resolution of the clustering algorithm', type=float, required=False, default=2)
     parser.add_argument('--n_neigh_gene', help='SCC: Number of neighbors using pca of gene expression', type=float, required=False, default=30)
@@ -83,6 +83,10 @@ if __name__ == '__main__':
     all_methods = {}
     if 'scc' in chosen_methods:
         all_methods['scc'] = SccAlgo
+    if 'leiden' in chosen_methods:
+        all_methods['leiden'] = LeidenAlgo
+    if 'louvain' in chosen_methods:
+        all_methods['louvain'] = LouvainAlgo
     if 'spagft' in chosen_methods:
         all_methods['spagft'] = SpagftAlgo
     if 'spatialde' in chosen_methods:

@@ -3,6 +3,8 @@ import logging
 
 from .clustering_algorithm import ClusteringAlgorithm
 from .scc import SccAlgo
+from .louvain import LouvainAlgo
+from .leiden import LeidenAlgo
 from .utils import timeit
 
 try:
