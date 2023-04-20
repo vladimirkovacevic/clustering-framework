@@ -102,11 +102,10 @@ if __name__ == '__main__':
     
     # Process requested methods
     for method in all_methods:
-        algo = None
-        if method == 'louvain' or method == 'leiden':
-            algo = all_methods[method](adata, method, **vars(args))    
-        else:
-            algo = all_methods[method](adata, **vars(args))
+        algo = all_methods[method](adata, **vars(args))
+
+        if method == 'louvain': algo.set_method('louvain')
+        if method == 'leiden': algo.set_method('leiden')
         
         algo.run()
         if algo.svg_only:

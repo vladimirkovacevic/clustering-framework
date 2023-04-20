@@ -3,8 +3,12 @@ import logging
 
 from .clustering_algorithm import ClusteringAlgorithm
 from .scc import SccAlgo
-from .leiden_louvain import LeidenLouvainAlgo
 from .utils import timeit
+
+try:
+    from .leiden_louvain import LeidenLouvainAlgo
+except ImportError:
+    logging.error("Cannot import LeidenLouvainAlgo.")
 
 try:
     from .spagft import SpagftAlgo

@@ -6,11 +6,9 @@ from .utils import timeit
 
 
 class LeidenLouvainAlgo(ClusteringAlgorithm):
-    def __init__(self, adata, cluster_key, **params):
+    def __init__(self, adata, **params):
         super().__init__(adata, **params)
-        self.cluster_key = cluster_key
-        self.filename = self.adata.uns['sample_name'] + f"_{self.cluster_key}_ng{self.n_neigh_gene}_r{self.resolution}_pcs{self.n_pcs}"
-    
+
     @timeit
     def run(self):
         self.preprocess()
@@ -34,4 +32,8 @@ class LeidenLouvainAlgo(ClusteringAlgorithm):
     def save_results(self):
         self.adata.write(f'{self.filename}.h5ad', compression="gzip")
         logging.info(f'Saved clustering result {self.filename}.h5ad')
+
+    def set_method(self, cluster_key):
+        self.cluster_key = cluster_key
+        self.filename = self.adata.uns['sample_name'] + f"_{self.cluster_key}_ng{self.n_neigh_gene}_r{self.resolution}_pcs{self.n_pcs}"
 
