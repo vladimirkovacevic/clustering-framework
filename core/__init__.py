@@ -6,6 +6,11 @@ from .scc import SccAlgo
 from .utils import timeit
 
 try:
+    from .leiden_louvain import LeidenLouvainAlgo
+except ImportError:
+    logging.error("Cannot import LeidenLouvainAlgo.")
+
+try:
     from .spagft import SpagftAlgo
 except ImportError:
     logging.warn("Module SpaGFT is not installed. Run: pip install SpaGFT==0.1.1b0   - if you wish to use it.")
