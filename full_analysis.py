@@ -83,7 +83,9 @@ if __name__ == '__main__':
 
     chosen_methods = args.methods.split(',')
     assert set(chosen_methods).issubset(set(available_methods)), "The requested methods could not be executed because your environment lacks needed libraries."
-        
+    
+    del args.methods
+
     all_methods = {}
     if 'scc' in chosen_methods:
         all_methods['scc'] = SccAlgo
@@ -102,10 +104,9 @@ if __name__ == '__main__':
     
     # Process requested methods
     for method in all_methods:
+        args.method = method
+        
         algo = all_methods[method](adata, **vars(args))
-
-        if method == 'louvain': algo.set_method('louvain')
-        if method == 'leiden': algo.set_method('leiden')
         
         algo.run()
         if algo.svg_only:
